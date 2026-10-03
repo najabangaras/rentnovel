@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>ห้องสมุดนิยายออนไลน์</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+        }
+
+        h2 { margin-bottom: 5px; color: #ecf0f1; }
+        .subtitle { font-size: 14px; color: #bdc3c7; margin-bottom: 20px; }
+
+        /* หน้าเลือกหนังสือ (Library View) */
+        #library-view {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            width: 100%;
+            padding: 10px;
+        }
+
+        .book-card {
+            background: #34495e;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .book-card:hover {
+            transform: translateY(-5px);
+            background: #3d566e;
+        }
+
+        .book-card img {
+            width: 100px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: #fff;
+        }
+
+        .book-card h3 {
+            font-size: 16px;
+            margin: 10px 0 5px 0;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .book-card p {
+            font-size: 13px;
+            color: #1abc9c;
+            margin: 0;
+        }
+
+        /* หน้าอ่านหนังสือ (Reader View) */
+        #reader-view {
+            display: none; 
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .top-nav {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .zoom-controls button, .top-nav button {
+            background-color: #16a085;
+            padding: 6px 14px;
+            font-size: 14px;
+            border-radius: 4px;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .zoom-controls button:hover, .top-nav button:hover { background-color: #1abc9c; }
+
+        .back-btn { background-color: #e74c3c !important; }
+        .back-btn:hover { background-color: #c0392b !important; }
+
+        .reader-container {
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            max-width: 95%;
+            overflow: auto;
+            text-align: center;
+            position: relative;
+        }
+
+        .reader-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border-radius: 4px;
+            pointer-events: none; 
+            transition: transform 0.1s ease;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button.action-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button.action-btn:hover { background-color: #2980b9; }
+        button.action-btn:disabled { background-color: #7f8c8d; cursor: not-allowed; }
+
+        .page-info {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ecf0f1;
+        }
+
+        /* สไตล์ช่องกรองหน้ากระโดด */
+        .jump-box {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #34495e;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        .jump-box input {
+            width: 60px;
+            padding: 6px;
+            font-size: 16px;
+            text-align: center;
+            border-radius: 4px;
+            border: 1px solid #7f8c8d;
+            background: #fff;
+            color: #333;
+        }
+        .jump-box button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .jump-box button:hover { background-color: #219653; }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <!-- หน้าที่ 1: รายการหนังสือทั้งหมด -->
+    <div id="library-view">
+        <h2>📚 ชั้นหนังสือออนไลน์</h2>
+        <div class="subtitle">เลือกหนังสือที่คุณต้องการอ่าน</div>
+        <div class="book-grid" id="book-grid">กำลังโหลดรายการหนังสือ...</div>
+    </div>
+
+    <!-- หน้าที่ 2: โปรแกรมอ่านหนังสือ -->
+    <div id="reader-view">
+        <div class="top-nav">
+            <button class="back-btn" onclick="backToLibrary()">⬅ กลับไปหน้าชั้นหนังสือ</button>
+            <div class="zoom-controls">
+                <button onclick="zoomIn()">🔍 ซูมเข้า</button>
+                <button onclick="zoomOut()">🔎 ซูมออก</button>
+                <button onclick="resetZoom()">1:1</button>
+                <button onclick="fitToWidth()">↔ เต็มจอ</button>
+            </div>
+        </div>
+
+        <h2 id="reader-book-title">ชื่อหนังสือ</h2>
+
+        <div class="reader-container" id="container-box">
+            <img id="page-image" src="" alt="หน้าหนังสือ">
+        </div>
+
+        <div class="controls">
+            <button class="action-btn" id="prev-btn" onclick="prevPage()">◀ หน้าก่อนหน้า</button>
+            <span class="page-info" id="page-indicator">กำลังโหลด...</span>
+            <button class="action-btn" id="next-btn" onclick="nextPage()">หน้าถัดไป ▶</button>
+            
+            <!-- ช่องกรอกเพื่อกระโดดไปหน้าที่ต้องการ -->
+            <div class="jump-box">
+                <input type="number" id="jump-input" min="1" placeholder="ไปหน้า">
+                <button onclick="jumpToPage()">ไป</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- โหลดรายชื่อหนังสือจากไฟล์ books.js แยกต่างหาก -->
+    <script src="books.js"></script>
+
+    <script>
+        let currentBook = null;
+        let currentPage = 1;
+        let totalPages = 0;
+        let currentScale = 1;
+
+        function renderLibrary() {
+            const grid = document.getElementById('book-grid');
+            grid.innerHTML = '';
+
+            if (typeof books === 'undefined' || books.length === 0) {
+                grid.innerHTML = '<p>ไม่มีรายการหนังสือในระบบ</p>';
+                return;
+            }
+
+            books.forEach((book, index) => {
+                grid.innerHTML += `
+                    <div class="book-card" onclick="openBook(${index})">
+                        <img src="output_books/${book.folderName}/page_1.jpg" alt="ปกหนังสือ" onerror="this.src='https://via.placeholder.com/100x140?text=No+Cover'">
+                        <h3>${book.title}</h3>
+                        <p>คลิกเพื่ออ่าน</p>
+                    </div>
+                `;
+            });
+        }
+
+        async function openBook(index) {
+            currentBook = books[index];
+            currentPage = 1;
+            currentScale = 1;
+
+            document.getElementById('library-view').style.display = 'none';
+            document.getElementById('reader-view').style.display = 'flex';
+            document.getElementById('reader-book-title').innerText = currentBook.title;
+            document.getElementById('page-indicator').innerText = 'กำลังตรวจสอบจำนวนหน้า...';
+
+            await detectTotalPages();
+        }
+
+        function backToLibrary() {
+            document.getElementById('reader-view').style.display = 'none';
+            document.getElementById('library-view').style.display = 'flex';
+        }
+
+        async function detectTotalPages() {
+            let page = 1;
+            let exists = true;
+
+            while (exists && page < 2000) {
+                let img = new Image();
+                let path = `output_books/${currentBook.folderName}/page_${page}.jpg`;
+                
+                let check = await new Promise((resolve) => {
+                    img.onload = () => resolve(true);
+                    img.onerror = () => resolve(false);
+                    img.src = path;
+                });
+
+                if (check) {
+                    page++;
+                } else {
+                    exists = false;
+                }
+            }
+            
+            totalPages = page - 1;
+            if (totalPages > 0) {
+                updateBookView();
+            } else {
+                document.getElementById('page-indicator').innerText = 'ไม่พบรูปภาพหน้าหนังสือในโฟลเดอร์นี้!';
+            }
+        }
+
+        function updateBookView() {
+            const imgElement = document.getElementById('page-image');
+            const indicator = document.getElementById('page-indicator');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const jumpInput = document.getElementById('jump-input');
+
+            imgElement.src = `output_books/${currentBook.folderName}/page_${currentPage}.jpg`;
+            indicator.innerText = `หน้า ${currentPage} / ${totalPages}`;
+            
+            jumpInput.value = currentPage; // อัปเดตเลขในช่องกรอกให้ตรงกับหน้าปัจจุบัน
+            jumpInput.max = totalPages;
+
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage >= totalPages;
+            
+            applyZoom();
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateBookView();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updateBookView();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        // ฟังก์ชันกระโดดไปหน้าที่กรอก
+        function jumpToPage() {
+            const jumpInput = document.getElementById('jump-input');
+            let targetPage = parseInt(jumpInput.value);
+
+            if (isNaN(targetPage)) return;
+
+            if (targetPage < 1) {
+                targetPage = 1;
+            } else if (targetPage > totalPages) {
+                targetPage = totalPages;
+            }
+
+            currentPage = targetPage;
+            updateBookView();
+            window.scrollTo(0, 0);
+        }
+
+        // กด Enter ในช่องกรอกเพื่อกระโดดได้ทันที
+        document.getElementById('jump-input').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                jumpToPage();
+            }
+        });
+
+        function zoomIn() {
+            currentScale += 0.2;
+            applyZoom();
+        }
+
+        function zoomOut() {
+            if (currentScale > 0.4) {
+                currentScale -= 0.2;
+                applyZoom();
+            }
+        }
+
+        function resetZoom() {
+            currentScale = 1;
+            applyZoom();
+        }
+
+        function fitToWidth() {
+            currentScale = 1;
+            applyZoom();
+        }
+
+        function applyZoom() {
+            const imgElement = document.getElementById('page-image');
+            imgElement.style.width = `${currentScale * 100}%`;
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (document.getElementById('reader-view').style.display === 'flex') {
+                if (event.key === 'ArrowRight') {
+                    nextPage();
+                } else if (event.key === 'ArrowLeft') {
+                    prevPage();
+                }
+            }
+        });
+
+        // เริ่มต้นแสดงผลชั้นหนังสือทันที
+        renderLibrary();
+    </script>
+
+</body>
+</html>
