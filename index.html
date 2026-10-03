@@ -9,13 +9,33 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Sarabun', sans-serif; }
+        
+        /* พื้นที่อ่านหนังสือแบบอิสระ รองรับ Scrollbar เลื่อนดูได้รอบทิศ */
+        .reader-container {
+            touch-action: pan-x pan-y pinch-zoom;
+            overflow: auto; 
+            -webkit-overflow-scrolling: touch;
+            transition: background-color 0.3s ease;
+        }
+        
+        /* ธีมสีพื้นหลังของกล่องอ่านหนังสือ (เหลือแค่ ปกติ และ กลางคืนแบบพื้นดำตัวหนังสือขาว) */
+        .theme-normal { background-color: #f8fafc; } /* สีปกติ (สว่าง) */
+        .theme-dark   { background-color: #000000; } /* สีกลางคืน (พื้นดำสนิท) */
+
+        /* ปลดล็อกภาพให้อยู่บนพื้นที่อ่านแบบอิสระ ขยายได้เต็มที่ตามสไลเดอร์ */
         .reader-container img {
+            width: 100%; /* ควบคุมด้วยสเกลเปอร์เซ็นต์ผ่าน JavaScript */
+            max-width: none !important;
             height: auto;
             display: block;
             margin: 0 auto;
-            border-radius: 4px;
-            pointer-events: none; 
-            transition: transform 0.1s ease;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            transition: width 0.05s ease, filter 0.3s ease;
+        }
+
+        /* เมื่ออยู่ในโหมดกลางคืน (พื้นดำ) ให้กลับสีภาพ (Invert) เพื่อให้พื้นหลังรูปเป็นดำและตัวหนังสือกลายเป็นสีขาว */
+        .theme-dark img {
+            filter: invert(1) hue-rotate(180deg) brightness(0.95);
         }
     </style>
 </head>
@@ -135,38 +155,48 @@
             </div>
 
             <!-- หน้าอ่านหนังสือ -->
-            <div id="reader-view" class="hidden flex-col items-center space-y-6 w-full max-w-full px-2">
-                <div class="w-full flex justify-between items-center bg-white p-4 rounded-xl shadow-md flex-wrap gap-4">
+            <div id="reader-view" class="hidden flex-col items-center space-y-4 w-full max-w-full px-2">
+                <!-- แถบเครื่องมือด้านบน -->
+                <div class="w-full max-w-5xl flex justify-between items-center bg-white p-4 rounded-xl shadow-md flex-wrap gap-4">
                     <button onclick="backToMainView()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
                         ⬅ กลับไปหน้าหลัก
                     </button>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="zoomIn()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm shadow">🔍 ซูมเข้า</button>
-                        <button onclick="zoomOut()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm shadow">🔎 ซูมออก</button>
-                        <button onclick="resetZoom()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm shadow">1:1</button>
+                    <h2 id="reader-book-title" class="text-base sm:text-lg font-bold text-gray-800 text-center truncate max-w-xs">ชื่อหนังสือ</h2>
+                    
+                    <div class="flex items-center space-x-3 flex-wrap gap-2">
+                        <!-- ปุ่มเปลี่ยนโหมดสี (เหลือเฉพาะ ปกติ / กลางคืนพื้นดำตัวหนังสือขาว) -->
+                        <div class="flex items-center bg-gray-100 p-1 rounded-lg border space-x-1">
+                            <button onclick="setTheme('normal')" id="btn-theme-normal" title="โหมดปกติ" class="px-3 py-1 rounded text-xs font-semibold bg-white shadow-sm transition">☀️ ปกติ</button>
+                            <button onclick="setTheme('dark')" id="btn-theme-dark" title="โหมดกลางคืน (พื้นดำ ตัวหนังสือขาว)" class="px-3 py-1 rounded text-xs font-semibold text-gray-600 hover:bg-gray-200 transition">🌙 มืด (พื้นดำ)</button>
+                        </div>
+
+                        <!-- แถบเลื่อน Slider ปรับขนาด % -->
+                        <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1.5 rounded-lg border">
+                            <span class="text-xs font-semibold text-gray-700">🔍 <span id="zoom-percent-text">100</span>%</span>
+                            <input type="range" id="zoom-slider" min="50" max="300" value="100" step="5" oninput="onSliderZoom(this.value)" class="w-20 sm:w-24 accent-teal-600 cursor-pointer">
+                            <button onclick="resetZoom()" class="bg-teal-600 hover:bg-teal-700 text-white px-2 py-1 rounded text-xs shadow transition">พอดีจอ</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-xl shadow-md w-full flex flex-col items-center space-y-4">
-                    <h2 id="reader-book-title" class="text-xl font-bold text-gray-800 text-center">ชื่อหนังสือ</h2>
+                <!-- พื้นที่แสดงภาพ -->
+                <div class="reader-container theme-normal w-full max-w-5xl h-[78vh] p-4 rounded-xl relative shadow-inner border border-gray-200 flex flex-col items-center" id="container-box">
+                    <img id="page-image" src="" alt="หน้าหนังสือ" class="select-none my-auto">
+                </div>
 
-                    <div class="reader-container bg-slate-900 p-4 rounded-lg w-full overflow-auto text-center min-h-[75vh] flex items-center justify-center" id="container-box">
-                        <img id="page-image" src="" alt="หน้าหนังสือ" class="mx-auto">
-                    </div>
-
-                    <div class="flex flex-wrap justify-center items-center gap-4 mt-4">
-                        <button id="prev-btn" onclick="prevPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400 transition">
-                            ◀ หน้าก่อนหน้า
-                        </button>
-                        <span id="page-indicator" class="text-base font-bold text-gray-700">กำลังโหลด...</span>
-                        <button id="next-btn" onclick="nextPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400 transition">
-                            หน้าถัดไป ▶
-                        </button>
-                        
-                        <div class="flex items-center space-x-2 bg-gray-100 p-2 rounded-lg border">
-                            <input type="number" id="jump-input" min="1" placeholder="ไปหน้า" class="w-16 p-1 text-center border rounded text-sm outline-none">
-                            <button onclick="jumpToPage()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition">ไป</button>
-                        </div>
+                <!-- แถบควบคุมเปลี่ยนหน้าด้านล่าง -->
+                <div class="w-full max-w-5xl bg-white p-3 rounded-xl shadow-md flex flex-wrap justify-center items-center gap-4">
+                    <button id="prev-btn" onclick="prevPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400 transition">
+                        ◀ หน้าก่อนหน้า
+                    </button>
+                    <span id="page-indicator" class="text-sm sm:text-base font-bold text-gray-700">กำลังโหลด...</span>
+                    <button id="next-btn" onclick="nextPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400 transition">
+                        หน้าถัดไป ▶
+                    </button>
+                    
+                    <div class="flex items-center space-x-2 bg-gray-100 p-1.5 rounded-lg border">
+                        <input type="number" id="jump-input" min="1" placeholder="ไปหน้า" class="w-16 p-1 text-center border rounded text-sm outline-none">
+                        <button onclick="jumpToPage()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition">ไป</button>
                     </div>
                 </div>
             </div>
@@ -196,15 +226,17 @@
         let currentUserIdDoc = null;
         let userPoints = 0;
         let userPurchasedBooks = {};
+        let userProgress = {}; 
         
         let allShopBooks = [];
         let allUsersData = [];
-        let currentPage = 1;
+        let shopCurrentPage = 1;
         const itemsPerPage = 10;
 
         let currentBookFolder = null;
         let totalPages = 0;
-        let currentScale = 1;
+        let currentScalePercent = 100; 
+        let currentPage = 1;
 
         window.onload = function() {
             const savedUser = sessionStorage.getItem("currentUsername");
@@ -214,6 +246,9 @@
             } else {
                 showLoginSection();
             }
+            // โหลดธีมที่เคยบันทึกไว้ล่าสุด (ถ้ามี)
+            const savedTheme = localStorage.getItem("readerTheme") || "normal";
+            setTheme(savedTheme, false);
         }
 
         window.toggleAuthMode = function(mode) {
@@ -313,7 +348,8 @@
                     password: regPassword,
                     userId: newUserId,
                     points: 0,
-                    purchasedBooks: {}
+                    purchasedBooks: {},
+                    progress: {}
                 });
 
                 alert(`สมัครสมาชิกสำเร็จ!\nรหัสสมาชิกของคุณคือ: ${newUserId}\n(คะแนนเริ่มต้นของคุณคือ 0 แต้ม)`);
@@ -368,6 +404,11 @@
                         if (data.purchasedBooks && typeof data.purchasedBooks === 'object') {
                             userPurchasedBooks = data.purchasedBooks;
                         }
+
+                        userProgress = {};
+                        if (data.progress && typeof data.progress === 'object') {
+                            userProgress = data.progress;
+                        }
                     }
                 });
 
@@ -397,7 +438,6 @@
             return { total, days, hours, minutes };
         }
 
-        // ฟังก์ชันช่วยแปลง Timestamp เป็นรูปแบบวันที่และเวลาภาษาไทย
         function formatThaiDateTime(timestamp) {
             const date = new Date(timestamp);
             const options = { 
@@ -505,7 +545,7 @@
         }
 
         window.renderShopBooksPage = function(page) {
-            currentPage = page;
+            shopCurrentPage = page;
             const container = document.getElementById('shop-books-container');
             container.innerHTML = '';
 
@@ -583,20 +623,20 @@
             if (totalPagesCount <= 1) return;
 
             container.innerHTML += `
-                <button onclick="renderShopBooksPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm transition"'}>
+                <button onclick="renderShopBooksPage(${shopCurrentPage - 1})" ${shopCurrentPage === 1 ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm transition"'}>
                     ก่อนหน้า
                 </button>
             `;
 
             for (let i = 1; i <= totalPagesCount; i++) {
-                const activeClass = i === currentPage ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+                const activeClass = i === shopCurrentPage ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
                 container.innerHTML += `
                     <button onclick="renderShopBooksPage(${i})" class="px-3 py-1 rounded text-sm font-medium ${activeClass} transition">${i}</button>
                 `;
             }
 
             container.innerHTML += `
-                <button onclick="renderShopBooksPage(${currentPage + 1})" ${currentPage === totalPagesCount ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm transition"'}>
+                <button onclick="renderShopBooksPage(${shopCurrentPage + 1})" ${shopCurrentPage === totalPagesCount ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm transition"'}>
                     ถัดไป
                 </button>
             `;
@@ -612,7 +652,7 @@
             let baseStartTime = Date.now();
 
             if (currentLatestExpire && currentLatestExpire > Date.now()) {
-                confirmMsg = `หนังสือเรื่องนี้มีคิวเช่าอยู่ ระบบจะทำการจองคิวต่อท้ายคิวล่าสุด โดยจะปลดล็อกให้อ่านอัตโนมัติเมื่อถึงคิวของคุณ (ได้สิทธิ์อ่าน 3 วันเต็มต่อจากคิวเดิม) ยืนยันการใช้ ${bookPoints} แต้มหรือไม่?`;
+                confirmMsg = `หนังสือเรื่องนี้มีคิวเช่าอยู่ ระบบจะทำการจองคิวต่อท้ายคิวล่าสุด โดยจะปลดล็อกให้อัตโนมัติเมื่อถึงคิวของคุณ (ได้สิทธิ์อ่าน 3 วันเต็มต่อจากคิวเดิม) ยืนยันการใช้ ${bookPoints} แต้มหรือไม่?`;
                 baseStartTime = currentLatestExpire;
             }
 
@@ -653,8 +693,8 @@
             }
 
             currentBookFolder = bookName;
-            currentPage = 1;
-            currentScale = 1;
+            currentScalePercent = 100; 
+            document.getElementById('zoom-slider').value = 100;
 
             document.getElementById('main-member-view').style.display = 'none';
             document.getElementById('reader-view').style.display = 'flex';
@@ -662,11 +702,19 @@
             document.getElementById('page-indicator').innerText = 'กำลังตรวจสอบจำนวนหน้า...';
 
             await detectTotalPages();
+
+            let savedPage = userProgress[bookName] ? parseInt(userProgress[bookName]) : 1;
+            if (isNaN(savedPage) || savedPage < 1) savedPage = 1;
+            if (savedPage > totalPages) savedPage = totalPages;
+
+            currentPage = savedPage;
+            updateBookView();
         }
 
         window.backToMainView = function() {
             document.getElementById('reader-view').style.display = 'none';
             document.getElementById('main-member-view').style.display = 'block';
+            loadUserData();
         }
 
         async function detectTotalPages() {
@@ -691,11 +739,6 @@
             }
             
             totalPages = page - 1;
-            if (totalPages > 0) {
-                updateBookView();
-            } else {
-                document.getElementById('page-indicator').innerText = 'ไม่พบรูปภาพหน้าหนังสือในโฟลเดอร์นี้!';
-            }
         }
 
         function updateBookView() {
@@ -715,6 +758,20 @@
             nextBtn.disabled = currentPage >= totalPages;
             
             applyZoom();
+            saveUserProgress();
+        }
+
+        async function saveUserProgress() {
+            if (!currentUserIdDoc || !currentBookFolder) return;
+            try {
+                userProgress[currentBookFolder] = currentPage;
+                const userRef = doc(db, "users", currentUserIdDoc);
+                await updateDoc(userRef, {
+                    progress: userProgress
+                });
+            } catch (error) {
+                console.error("Error saving reading progress:", error);
+            }
         }
 
         window.nextPage = function() {
@@ -722,6 +779,8 @@
                 currentPage++;
                 updateBookView();
                 window.scrollTo(0, 0);
+                const containerBox = document.getElementById('container-box');
+                if (containerBox) containerBox.scrollTop = 0;
             }
         }
 
@@ -730,6 +789,8 @@
                 currentPage--;
                 updateBookView();
                 window.scrollTo(0, 0);
+                const containerBox = document.getElementById('container-box');
+                if (containerBox) containerBox.scrollTop = 0;
             }
         }
 
@@ -748,28 +809,57 @@
             currentPage = targetPage;
             updateBookView();
             window.scrollTo(0, 0);
+            const containerBox = document.getElementById('container-box');
+            if (containerBox) containerBox.scrollTop = 0;
         }
 
-        window.zoomIn = function() {
-            currentScale += 0.2;
+        window.onSliderZoom = function(val) {
+            currentScalePercent = parseInt(val);
             applyZoom();
         }
 
-        window.zoomOut = function() {
-            if (currentScale > 0.4) {
-                currentScale -= 0.2;
-                applyZoom();
-            }
-        }
-
         window.resetZoom = function() {
-            currentScale = 1;
+            currentScalePercent = 100; 
+            document.getElementById('zoom-slider').value = 100;
             applyZoom();
         }
 
         function applyZoom() {
             const imgElement = document.getElementById('page-image');
-            imgElement.style.width = `${currentScale * 100}%`;
+            const percentText = document.getElementById('zoom-percent-text');
+            if (imgElement) {
+                imgElement.style.width = `${currentScalePercent}%`;
+            }
+            if (percentText) {
+                percentText.innerText = currentScalePercent;
+            }
+        }
+
+        // ฟังก์ชันจัดการโหมดอ่านหนังสือ (ปกติ / กลางคืนพื้นดำตัวหนังสือขาว)
+        window.setTheme = function(themeName, save = true) {
+            const containerBox = document.getElementById('container-box');
+            if (!containerBox) return;
+
+            // ลบธีมเก่าออก
+            containerBox.classList.remove('theme-normal', 'theme-dark');
+            // ใส่ธีมใหม่
+            containerBox.classList.add(`theme-${themeName}`);
+
+            // สลับสถานะปุ่มกด active
+            ['normal', 'dark'].forEach(t => {
+                const btn = document.getElementById(`btn-theme-${t}`);
+                if (btn) {
+                    if (t === themeName) {
+                        btn.className = "px-3 py-1 rounded text-xs font-semibold bg-white text-indigo-600 shadow-sm transition";
+                    } else {
+                        btn.className = "px-3 py-1 rounded text-xs font-semibold text-gray-600 hover:bg-gray-200 transition";
+                    }
+                }
+            });
+
+            if (save) {
+                localStorage.setItem("readerTheme", themeName);
+            }
         }
 
         document.addEventListener('keydown', function(event) {
