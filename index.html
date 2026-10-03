@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RentNovel - ระบบเช่านิยายออนไลน์</title>
-    <!-- Tailwind CSS -->
+    <title>RentNovel - ระบบเช่านิยายออนไลน์ (ระบบคิวแท้)</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        body { font-family: 'Sarabun', sans-serif; }
         .reader-container img {
-            width: 100%;
             height: auto;
             display: block;
             margin: 0 auto;
@@ -18,30 +19,66 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans" oncontextmenu="return false;">
+<body class="bg-gray-50 min-h-screen flex flex-col" oncontextmenu="return false;">
 
-    <!-- ================= SECTION: หน้าจอเข้าสู่ระบบ (Login View) ================= -->
+    <!-- ================= SECTION: หน้าจอเข้าสู่ระบบและสมัครสมาชิก ================= -->
     <div id="login-section" class="min-h-screen flex items-center justify-center bg-gray-900 px-4">
         <div class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 space-y-6">
-            <div class="text-center">
-                <h1 class="text-2xl font-bold text-gray-800">📚 RentNovel</h1>
-                <p class="text-sm text-gray-500 mt-1">เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน</p>
-            </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">เลือกอีเมลผู้ใช้งาน</label>
-                    <select id="login-email-select" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-800 bg-white">
-                        <option value="">-- กำลังโหลดรายชื่อผู้ใช้ --</option>
-                    </select>
+            
+            <!-- ฟอร์มเข้าสู่ระบบ -->
+            <div id="form-login" class="space-y-6">
+                <div class="text-center">
+                    <h1 class="text-2xl font-bold text-indigo-600">📚 RentNovel</h1>
+                    <p class="text-sm text-gray-500 mt-1">เข้าสู่ระบบด้วยชื่อผู้ใช้ หรือรหัสสมาชิก</p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน (Password)</label>
-                    <input type="password" id="login-password-input" placeholder="กรอกรหัสผ่านของคุณ" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-800">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้งาน หรือ รหัสสมาชิก</label>
+                        <input type="text" id="login-username-input" placeholder="กรอก Username หรือ User ID" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-800">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน (Password)</label>
+                        <input type="password" id="login-password-input" placeholder="กรอกรหัสผ่านของคุณ" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-800">
+                    </div>
+                    <button onclick="loginUser()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition shadow">
+                        เข้าสู่ระบบ
+                    </button>
                 </div>
-                <button onclick="loginUser()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition shadow">
-                    เข้าสู่ระบบ
-                </button>
+                <div class="text-center pt-2 border-t">
+                    <p class="text-sm text-gray-600">ยังไม่มีบัญชีผู้ใช้งาน?</p>
+                    <button onclick="toggleAuthMode('register')" class="mt-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm transition">
+                        ✍️ สมัครสมาชิกใหม่
+                    </button>
+                </div>
             </div>
+
+            <!-- ฟอร์มสมัครสมาชิกใหม่ -->
+            <div id="form-register" class="space-y-6 hidden">
+                <div class="text-center">
+                    <h1 class="text-2xl font-bold text-emerald-600">📚 สมัครสมาชิกใหม่</h1>
+                    <p class="text-sm text-gray-500 mt-1">สร้างบัญชีเพื่อเช่านิยาย</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้งาน (Username)</label>
+                        <input type="text" id="reg-username-input" placeholder="ตั้งชื่อ Username ของคุณ" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-gray-800">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน (Password)</label>
+                        <input type="password" id="reg-password-input" placeholder="กำหนดรหัสผ่าน" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-gray-800">
+                    </div>
+                    <button onclick="registerUser()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg transition shadow">
+                        ยืนยันการสมัครสมาชิก
+                    </button>
+                </div>
+                <div class="text-center pt-2 border-t">
+                    <p class="text-sm text-gray-600">มีบัญชีผู้ใช้งานอยู่แล้ว?</p>
+                    <button onclick="toggleAuthMode('login')" class="mt-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm transition">
+                        ⬅ กลับไปหน้าเข้าสู่ระบบ
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -53,7 +90,7 @@
                 <h1 class="text-xl font-bold">📚 RentNovel</h1>
                 <div class="flex items-center space-x-4">
                     <span id="user-display" class="text-sm">กำลังโหลดข้อมูล...</span>
-                    <button onclick="logoutUser()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition">ออกจากระบบ</button>
+                    <button onclick="logoutUser()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition shadow">ออกจากระบบ</button>
                 </div>
             </div>
         </nav>
@@ -76,7 +113,7 @@
 
                 <!-- 2. ชั้นหนังสือของฉัน -->
                 <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h2 class="text-lg font-bold text-gray-800 mb-6">📖 ชั้นหนังสือของฉัน (เช่าอ่าน 3 วัน)</h2>
+                    <h2 class="text-lg font-bold text-gray-800 mb-6">📖 ชั้นหนังสือของฉัน (รวมคิวจองและหนังสือที่กำลังอ่าน)</h2>
                     <div id="my-shelf-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         <p class="text-gray-500 text-sm col-span-full">กำลังโหลดชั้นหนังสือ...</p>
                     </div>
@@ -98,37 +135,37 @@
             </div>
 
             <!-- หน้าอ่านหนังสือ -->
-            <div id="reader-view" class="hidden flex-col items-center space-y-6">
+            <div id="reader-view" class="hidden flex-col items-center space-y-6 w-full max-w-full px-2">
                 <div class="w-full flex justify-between items-center bg-white p-4 rounded-xl shadow-md flex-wrap gap-4">
                     <button onclick="backToMainView()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
                         ⬅ กลับไปหน้าหลัก
                     </button>
                     <div class="flex items-center space-x-2">
-                        <button onclick="zoomIn()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm">🔍 ซูมเข้า</button>
-                        <button onclick="zoomOut()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm">🔎 ซูมออก</button>
-                        <button onclick="resetZoom()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm">1:1</button>
+                        <button onclick="zoomIn()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm shadow">🔍 ซูมเข้า</button>
+                        <button onclick="zoomOut()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm shadow">🔎 ซูมออก</button>
+                        <button onclick="resetZoom()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm shadow">1:1</button>
                     </div>
                 </div>
 
                 <div class="bg-white p-6 rounded-xl shadow-md w-full flex flex-col items-center space-y-4">
                     <h2 id="reader-book-title" class="text-xl font-bold text-gray-800 text-center">ชื่อหนังสือ</h2>
 
-                    <div class="reader-container bg-slate-900 p-4 rounded-lg w-full max-w-4xl overflow-auto text-center" id="container-box">
+                    <div class="reader-container bg-slate-900 p-4 rounded-lg w-full overflow-auto text-center min-h-[75vh] flex items-center justify-center" id="container-box">
                         <img id="page-image" src="" alt="หน้าหนังสือ" class="mx-auto">
                     </div>
 
                     <div class="flex flex-wrap justify-center items-center gap-4 mt-4">
-                        <button id="prev-btn" onclick="prevPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400">
+                        <button id="prev-btn" onclick="prevPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400 transition">
                             ◀ หน้าก่อนหน้า
                         </button>
                         <span id="page-indicator" class="text-base font-bold text-gray-700">กำลังโหลด...</span>
-                        <button id="next-btn" onclick="nextPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400">
+                        <button id="next-btn" onclick="nextPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400 transition">
                             หน้าถัดไป ▶
                         </button>
                         
                         <div class="flex items-center space-x-2 bg-gray-100 p-2 rounded-lg border">
-                            <input type="number" id="jump-input" min="1" placeholder="ไปหน้า" class="w-16 p-1 text-center border rounded text-sm">
-                            <button onclick="jumpToPage()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">ไป</button>
+                            <input type="number" id="jump-input" min="1" placeholder="ไปหน้า" class="w-16 p-1 text-center border rounded text-sm outline-none">
+                            <button onclick="jumpToPage()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition">ไป</button>
                         </div>
                     </div>
                 </div>
@@ -140,7 +177,7 @@
     <!-- Firebase SDKs & Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyA4GnDUaCk0aL1QTFHlNgLnNUVZKTOKI_I",
@@ -155,7 +192,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let currentUserEmail = "";
+        let currentUsername = "";
         let currentUserIdDoc = null;
         let userPoints = 0;
         let userPurchasedBooks = {};
@@ -169,68 +206,135 @@
         let totalPages = 0;
         let currentScale = 1;
 
-        window.onload = async function() {
-            await fetchAllUsersForLogin();
-            const savedEmail = sessionStorage.getItem("userEmail");
-            if (savedEmail) {
-                currentUserEmail = savedEmail;
+        window.onload = function() {
+            const savedUser = sessionStorage.getItem("currentUsername");
+            if (savedUser) {
+                currentUsername = savedUser;
                 showAppSection();
             } else {
                 showLoginSection();
             }
         }
 
-        async function fetchAllUsersForLogin() {
-            try {
-                const querySnapshot = await getDocs(collection(db, "users"));
-                allUsersData = [];
-                const selectElement = document.getElementById('login-email-select');
-                selectElement.innerHTML = '<option value="">-- กรุณาเลือกอีเมลผู้ใช้งาน --</option>';
-
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    allUsersData.push({ id: docSnap.id, ...data });
-                    if (data.email) {
-                        selectElement.innerHTML += `<option value="${data.email}">${data.email}</option>`;
-                    }
-                });
-            } catch (error) {
-                console.error("Error fetching users:", error);
+        window.toggleAuthMode = function(mode) {
+            const loginForm = document.getElementById('form-login');
+            const regForm = document.getElementById('form-register');
+            if (mode === 'register') {
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+            } else {
+                regForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
             }
         }
 
-        window.loginUser = function() {
-            const selectedEmail = document.getElementById('login-email-select').value;
+        window.loginUser = async function() {
+            const inputVal = document.getElementById('login-username-input').value.trim();
             const passwordInput = document.getElementById('login-password-input').value;
 
-            if (!selectedEmail) {
-                alert('กรุณาเลือกอีเมลผู้ใช้งาน');
+            if (!inputVal || !passwordInput) {
+                alert('กรุณากรอกชื่อผู้ใช้งาน/รหัสสมาชิก และรหัสผ่าน');
                 return;
             }
 
-            const targetUser = allUsersData.find(u => u.email === selectedEmail);
-            if (!targetUser) {
-                alert('ไม่พบข้อมูลผู้ใช้งานนี้ในระบบ');
+            try {
+                const querySnapshot = await getDocs(collection(db, "users"));
+                let targetUser = null;
+
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const dbUsername = data.username ? String(data.username).trim() : "";
+                    const dbUserId = data.userId ? String(data.userId).trim() : "";
+                    const dbNumericUserId = data.numericUserId !== undefined ? String(data.numericUserId).trim() : "";
+
+                    if (dbUsername === inputVal || dbUserId === inputVal || dbNumericUserId === inputVal) {
+                        targetUser = { id: docSnap.id, ...data };
+                    }
+                });
+
+                if (!targetUser) {
+                    alert('ไม่พบชื่อผู้ใช้งานหรือรหัสสมาชิกนี้ในระบบ');
+                    return;
+                }
+
+                const dbPassword = targetUser.password !== undefined ? String(targetUser.password) : (targetUser.pin !== undefined ? String(targetUser.pin) : "");
+                
+                if (dbPassword !== "" && dbPassword !== passwordInput) {
+                    alert('รหัสผ่านไม่ถูกต้อง!');
+                    return;
+                }
+
+                currentUsername = targetUser.username;
+                sessionStorage.setItem("currentUsername", currentUsername);
+                showAppSection();
+            } catch (error) {
+                console.error("Login error:", error);
+                alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + error.message);
+            }
+        }
+
+        window.registerUser = async function() {
+            const regUsername = document.getElementById('reg-username-input').value.trim();
+            const regPassword = document.getElementById('reg-password-input').value;
+
+            if (!regUsername || !regPassword) {
+                alert('กรุณากรอกชื่อผู้ใช้งานและรหัสผ่านให้ครบถ้วน');
                 return;
             }
 
-            const dbPassword = targetUser.password || targetUser.pin || "";
-            if (dbPassword && dbPassword !== passwordInput) {
-                alert('รหัสผ่านไม่ถูกต้อง!');
-                return;
-            }
+            try {
+                const querySnapshot = await getDocs(collection(db, "users"));
+                let isUsernameTaken = false;
+                let maxId = 10000000;
 
-            currentUserEmail = selectedEmail;
-            sessionStorage.setItem("userEmail", currentUserEmail);
-            showAppSection();
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    if (data.username === regUsername) {
+                        isUsernameTaken = true;
+                    }
+                    if (data.userId) {
+                        let numericId = parseInt(data.userId, 10);
+                        if (!isNaN(numericId) && numericId > maxId) {
+                            maxId = numericId;
+                        }
+                    }
+                });
+
+                if (isUsernameTaken) {
+                    alert('ชื่อผู้ใช้งานนี้ถูกใช้งานไปแล้ว กรุณาใช้ชื่ออื่น');
+                    return;
+                }
+
+                let newUserId = (maxId + 1).toString();
+
+                const newUserRef = doc(collection(db, "users"));
+                await setDoc(newUserRef, {
+                    username: regUsername,
+                    password: regPassword,
+                    userId: newUserId,
+                    points: 0,
+                    purchasedBooks: {}
+                });
+
+                alert(`สมัครสมาชิกสำเร็จ!\nรหัสสมาชิกของคุณคือ: ${newUserId}\n(คะแนนเริ่มต้นของคุณคือ 0 แต้ม)`);
+                
+                document.getElementById('reg-username-input').value = "";
+                document.getElementById('reg-password-input').value = "";
+                toggleAuthMode('login');
+                document.getElementById('login-username-input').value = regUsername;
+
+            } catch (error) {
+                console.error("Register error:", error);
+                alert('เกิดข้อผิดพลาดในการสมัครสมาชิก: ' + error.message);
+            }
         }
 
         window.logoutUser = function() {
             sessionStorage.clear();
-            currentUserEmail = "";
+            currentUsername = "";
+            document.getElementById('login-username-input').value = "";
             document.getElementById('login-password-input').value = "";
             showLoginSection();
-            fetchAllUsersForLogin();
         }
 
         function showLoginSection() {
@@ -241,7 +345,7 @@
         function showAppSection() {
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('app-section').style.display = 'flex';
-            document.getElementById('user-display',).innerText = `ผู้ใช้งาน: ${currentUserEmail}`;
+            document.getElementById('user-display').innerText = `ผู้ใช้งาน: ${currentUsername}`;
             loadUserData();
         }
 
@@ -255,29 +359,20 @@
                     const data = docSnap.data();
                     allUsersData.push({ id: docSnap.id, ...data });
 
-                    if (data.email === currentUserEmail) {
+                    if (data.username === currentUsername) {
                         foundUser = true;
                         currentUserIdDoc = docSnap.id;
                         userPoints = data.points !== undefined ? data.points : 0;
                         
-                        // แปลงข้อมูล purchasedBooks ให้รองรับทั้งแบบ Array และแบบ Object
                         userPurchasedBooks = {};
-                        if (Array.isArray(data.purchasedBooks)) {
-                            // ถ้าเก็บเป็นอาเรย์ ให้เซ็ตเวลาหมดอายุเป็นอีก 3 วันนับจากตอนนี้เป็นค่าเริ่มต้น
-                            const defaultExpire = Date.now() + (3 * 24 * 60 * 60 * 1000);
-                            data.purchasedBooks.forEach(bookName => {
-                                if (typeof bookName === 'string') {
-                                    userPurchasedBooks[bookName] = defaultExpire;
-                                }
-                            });
-                        } else if (data.purchasedBooks && typeof data.purchasedBooks === 'object') {
+                        if (data.purchasedBooks && typeof data.purchasedBooks === 'object') {
                             userPurchasedBooks = data.purchasedBooks;
                         }
                     }
                 });
 
                 if (!foundUser) {
-                    alert('ไม่พบอีเมลนี้ในระบบฐานข้อมูล');
+                    alert('ไม่พบข้อมูลผู้ใช้งานนี้ในระบบฐานข้อมูล');
                     logoutUser();
                     return;
                 }
@@ -302,6 +397,20 @@
             return { total, days, hours, minutes };
         }
 
+        // ฟังก์ชันช่วยแปลง Timestamp เป็นรูปแบบวันที่และเวลาภาษาไทย
+        function formatThaiDateTime(timestamp) {
+            const date = new Date(timestamp);
+            const options = { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+            };
+            return date.toLocaleDateString('th-TH', options) + ' น.';
+        }
+
         function renderMyShelf() {
             const shelfContainer = document.getElementById('my-shelf-container');
             shelfContainer.innerHTML = '';
@@ -313,31 +422,56 @@
             }
 
             bookKeys.forEach((bookName) => {
-                const expireTime = userPurchasedBooks[bookName];
-                const timeRem = getTimeRemaining(expireTime);
+                const expireTime = Number(userPurchasedBooks[bookName]) || 0;
+                const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+                const startTime = expireTime - threeDaysMs;
+
+                const now = Date.now();
                 const coverPath = `output_books/${bookName}/page_1.jpg`;
+                const formattedStartTime = formatThaiDateTime(startTime);
+                const formattedExpireTime = formatThaiDateTime(expireTime);
 
-                let timeText = "";
-                let isExpired = false;
+                let statusBadge = "";
+                let isReadable = false;
 
-                if (!expireTime || !timeRem || timeRem.total <= 0) {
-                    isExpired = true;
-                    timeText = `<span class="text-red-500 font-bold text-xs">⏰ หมดอายุการอ่านแล้ว</span>`;
+                if (now < startTime) {
+                    const waitRem = getTimeRemaining(startTime);
+                    statusBadge = `
+                        <div class="mt-1 text-center space-y-0.5">
+                            <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold block">⏳ สถานะ: จองคิวรออ่าน</span>
+                            <span class="text-[9px] text-gray-500 block">เริ่มอ่านได้ใน: ${waitRem ? waitRem.days : 0}วัน ${waitRem ? waitRem.hours : 0}ชม.</span>
+                            <span class="text-[9px] text-indigo-600 font-semibold block">📅 พร้อมอ่าน: ${formattedStartTime}</span>
+                        </div>
+                    `;
+                } else if (now >= startTime && now <= expireTime) {
+                    isReadable = true;
+                    const expireRem = getTimeRemaining(expireTime);
+                    statusBadge = `
+                        <div class="mt-1 text-center space-y-0.5">
+                            <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold block">📖 กำลังเปิดให้อ่าน</span>
+                            <span class="text-[9px] text-orange-600 block">เหลือเวลา: ${expireRem ? expireRem.days : 0}วัน ${expireRem ? expireRem.hours : 0}ชม.</span>
+                            <span class="text-[9px] text-red-500 font-semibold block">⏰ หมดเขต: ${formattedExpireTime}</span>
+                        </div>
+                    `;
                 } else {
-                    timeText = `<span class="text-orange-600 font-semibold text-[11px]">⏳ เหลือเวลา: ${timeRem.days}วัน ${timeRem.hours}ชม.</span>`;
+                    statusBadge = `
+                        <div class="mt-1 text-center">
+                            <span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold block">⏰ หมดอายุการอ่านแล้ว</span>
+                        </div>
+                    `;
                 }
 
                 shelfContainer.innerHTML += `
                     <div class="flex flex-col items-center group">
-                        <div class="w-28 h-40 rounded shadow-md overflow-hidden relative bg-gray-100 border border-gray-200 ${isExpired ? 'opacity-50 grayscale' : 'cursor-pointer'}" ${!isExpired ? `onclick="openReader('${bookName}')"` : ''}>
+                        <div class="w-28 h-40 rounded shadow-md overflow-hidden relative bg-gray-100 border border-gray-200 ${!isReadable ? 'opacity-60 grayscale' : 'cursor-pointer'}" ${isReadable ? `onclick="openReader('${bookName}')"` : ''}>
                             <img src="${coverPath}" alt="${bookName}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/100x140?text=No+Cover';">
-                            ${!isExpired ? `
+                            ${isReadable ? `
                             <div class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                                 <span class="bg-indigo-600 text-white text-[10px] px-2 py-1 rounded font-semibold shadow">📖 คลิกเพื่ออ่าน</span>
                             </div>` : ''}
                         </div>
                         <p class="text-xs font-semibold text-gray-800 mt-2 text-center line-clamp-1 w-full" title="${bookName}">${bookName}</p>
-                        <div class="mt-1 text-center">${timeText}</div>
+                        ${statusBadge}
                     </div>
                 `;
             });
@@ -387,46 +521,41 @@
 
             paginatedItems.forEach((book) => {
                 const coverPath = `output_books/${book.name}/page_1.jpg`;
-                const isOwnedByMe = userPurchasedBooks[book.name] && userPurchasedBooks[book.name] > Date.now();
-
+                
                 let latestExpireTime = Date.now();
-                let hasActiveRenter = false;
+                let hasActiveOrQueuedRenter = false;
 
                 for (let u of allUsersData) {
-                    if (u.purchasedBooks) {
-                        // รองรับทั้งกรณีซื้อแบบ Object หรือ Array ในระบบของ User อื่น ๆ ด้วย
-                        if (typeof u.purchasedBooks === 'object' && !Array.isArray(u.purchasedBooks)) {
-                            let expire = u.purchasedBooks[book.name];
-                            if (expire && expire > Date.now()) {
-                                hasActiveRenter = true;
-                                if (expire > latestExpireTime) {
-                                    latestExpireTime = expire;
-                                }
-                            }
-                        } else if (Array.isArray(u.purchasedBooks)) {
-                            if (u.purchasedBooks.includes(book.name)) {
-                                hasActiveRenter = true;
+                    if (u.purchasedBooks && typeof u.purchasedBooks === 'object') {
+                        let expire = Number(u.purchasedBooks[book.name]) || 0;
+                        if (expire > Date.now()) {
+                            hasActiveOrQueuedRenter = true;
+                            if (expire > latestExpireTime) {
+                                latestExpireTime = expire;
                             }
                         }
                     }
                 }
 
+                const myExpire = Number(userPurchasedBooks[book.name]) || 0;
+                const isAlreadyInMyShelf = myExpire > Date.now();
+
                 let actionButton = '';
-                if (isOwnedByMe) {
-                    actionButton = `<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded font-semibold mt-1">อยู่ในชั้นของคุณแล้ว</span>`;
-                } else if (hasActiveRenter) {
+                if (isAlreadyInMyShelf) {
+                    actionButton = `<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded font-semibold mt-1">อยู่ในชั้น/คิวของคุณแล้ว</span>`;
+                } else if (hasActiveOrQueuedRenter) {
                     const rem = getTimeRemaining(latestExpireTime);
                     const remStr = rem ? `${rem.days}วัน ${rem.hours}ชม.` : `เร็วๆ นี้`;
                     
                     actionButton = `
                         <div class="mt-1 text-center flex flex-col items-center">
-                            <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">มีผู้เช่าอยู่ (จองคิวต่อได้)</span>
-                            <span class="text-[9px] text-gray-500 mt-0.5">ว่างในอีก: ${remStr}</span>
-                            <button onclick="buyBookWithPoints('${book.name}', ${book.points}, ${latestExpireTime})" class="mt-1 bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-[4px] text-[10px] font-semibold transition">จองคิวเช่าต่อ (${book.points} แต้ม)</button>
+                            <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">มีคิวจองอยู่</span>
+                            <span class="text-[9px] text-gray-500 mt-0.5">ได้คิวอ่านในอีก: ${remStr}</span>
+                            <button onclick="buyBookWithPoints('${book.name}', ${book.points}, ${latestExpireTime})" class="mt-1 bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-[4px] text-[10px] font-semibold transition shadow">จองคิวเช่าต่อ (${book.points} แต้ม)</button>
                         </div>
                     `;
                 } else {
-                    actionButton = `<button onclick="buyBookWithPoints('${book.name}', ${book.points}, null)" class="mt-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-[4px] text-[10px] font-semibold transition">เช่า 3 วัน (${book.points} แต้ม)</button>`;
+                    actionButton = `<button onclick="buyBookWithPoints('${book.name}', ${book.points}, null)" class="mt-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-[4px] text-[10px] font-semibold transition shadow">เช่า 3 วัน (${book.points} แต้ม)</button>`;
                 }
 
                 container.innerHTML += `
@@ -454,7 +583,7 @@
             if (totalPagesCount <= 1) return;
 
             container.innerHTML += `
-                <button onclick="renderShopBooksPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm"'}>
+                <button onclick="renderShopBooksPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm transition"'}>
                     ก่อนหน้า
                 </button>
             `;
@@ -462,12 +591,12 @@
             for (let i = 1; i <= totalPagesCount; i++) {
                 const activeClass = i === currentPage ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
                 container.innerHTML += `
-                    <button onclick="renderShopBooksPage(${i})" class="px-3 py-1 rounded text-sm font-medium ${activeClass}">${i}</button>
+                    <button onclick="renderShopBooksPage(${i})" class="px-3 py-1 rounded text-sm font-medium ${activeClass} transition">${i}</button>
                 `;
             }
 
             container.innerHTML += `
-                <button onclick="renderShopBooksPage(${currentPage + 1})" ${currentPage === totalPagesCount ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm"'}>
+                <button onclick="renderShopBooksPage(${currentPage + 1})" ${currentPage === totalPagesCount ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm transition"'}>
                     ถัดไป
                 </button>
             `;
@@ -480,16 +609,18 @@
             }
 
             let confirmMsg = `คุณต้องการใช้ ${bookPoints} แต้ม เพื่อเช่าหนังสือ "${bookName}" ใช่หรือไม่?`;
+            let baseStartTime = Date.now();
+
             if (currentLatestExpire && currentLatestExpire > Date.now()) {
-                confirmMsg = `หนังสือเรื่องนี้มีผู้เช่าอยู่ ระบบจะทำการจองคิวต่อจากผู้เช่าเดิมทันที (นับเวลาเพิ่มให้อีก 3 วันหลังจากคิวเดิมหมด) ยืนยันการใช้ ${bookPoints} แต้มหรือไม่?`;
+                confirmMsg = `หนังสือเรื่องนี้มีคิวเช่าอยู่ ระบบจะทำการจองคิวต่อท้ายคิวล่าสุด โดยจะปลดล็อกให้อ่านอัตโนมัติเมื่อถึงคิวของคุณ (ได้สิทธิ์อ่าน 3 วันเต็มต่อจากคิวเดิม) ยืนยันการใช้ ${bookPoints} แต้มหรือไม่?`;
+                baseStartTime = currentLatestExpire;
             }
 
             if (confirm(confirmMsg)) {
                 try {
                     const newPoints = userPoints - bookPoints;
-                    
-                    let baseStartTime = (currentLatestExpire && currentLatestExpire > Date.now()) ? currentLatestExpire : Date.now();
-                    const newExpireTime = baseStartTime + (3 * 24 * 60 * 60 * 1000);
+                    const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+                    const newExpireTime = baseStartTime + threeDaysMs;
 
                     userPurchasedBooks[bookName] = newExpireTime;
                     const userRef = doc(db, "users", currentUserIdDoc);
@@ -499,7 +630,7 @@
                         purchasedBooks: userPurchasedBooks
                     });
 
-                    alert(`เช่า/จองคิวหนังสือสำเร็จ! เพิ่ม "${bookName}" ลงในชั้นหนังสือของคุณแล้ว`);
+                    alert(`จองคิวเช่าหนังสือสำเร็จ! เพิ่ม "${bookName}" ลงในชั้นหนังสือของคุณแล้ว (ระบบจะปลดล็อกให้อ่านตามคิวเวลา)`);
                     loadUserData();
                 } catch (error) {
                     alert('เกิดข้อผิดพลาดในการเช่าหนังสือ: ' + error.message);
@@ -508,6 +639,19 @@
         }
 
         window.openReader = async function(bookName) {
+            const expireTime = Number(userPurchasedBooks[bookName]) || 0;
+            const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+            const startTime = expireTime - threeDaysMs;
+
+            if (Date.now() < startTime) {
+                alert('ยังไม่ถึงคิวอ่านของคุณ กรุณารอจนกว่าจะถึงเวลาเปิดให้อ่านครับ');
+                return;
+            }
+            if (Date.now() > expireTime) {
+                alert('สิทธิ์การอ่านหนังสือเล่มนี้หมดอายุแล้วครับ');
+                return;
+            }
+
             currentBookFolder = bookName;
             currentPage = 1;
             currentScale = 1;
@@ -574,7 +718,6 @@
         }
 
         window.nextPage = function() {
-            page => {}
             if (currentPage < totalPages) {
                 currentPage++;
                 updateBookView();
