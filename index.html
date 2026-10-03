@@ -2,129 +2,11 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>ห้องสมุดนิยายออนไลน์</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RentNovel - ระบบเช่านิยายออนไลน์</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #2c3e50;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: #fff;
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-        }
-
-        h2 { margin-bottom: 5px; color: #ecf0f1; }
-        .subtitle { font-size: 14px; color: #bdc3c7; margin-bottom: 20px; }
-
-        /* หน้าเลือกหนังสือ (Library View) */
-        #library-view {
-            width: 100%;
-            max-width: 900px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .book-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 20px;
-            width: 100%;
-            padding: 10px;
-        }
-
-        .book-card {
-            background: #34495e;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
-        }
-
-        .book-card:hover {
-            transform: translateY(-5px);
-            background: #3d566e;
-        }
-
-        .book-card img {
-            width: 100px;
-            height: 140px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            background: #fff;
-        }
-
-        .book-card h3 {
-            font-size: 16px;
-            margin: 10px 0 5px 0;
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .book-card p {
-            font-size: 13px;
-            color: #1abc9c;
-            margin: 0;
-        }
-
-        /* หน้าอ่านหนังสือ (Reader View) */
-        #reader-view {
-            display: none; 
-            width: 100%;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .top-nav {
-            width: 100%;
-            max-width: 900px;
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .zoom-controls {
-            display: flex;
-            gap: 10px;
-        }
-
-        .zoom-controls button, .top-nav button {
-            background-color: #16a085;
-            padding: 6px 14px;
-            font-size: 14px;
-            border-radius: 4px;
-            border: none;
-            color: white;
-            cursor: pointer;
-        }
-        .zoom-controls button:hover, .top-nav button:hover { background-color: #1abc9c; }
-
-        .back-btn { background-color: #e74c3c !important; }
-        .back-btn:hover { background-color: #c0392b !important; }
-
-        .reader-container {
-            background: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-            max-width: 95%;
-            overflow: auto;
-            text-align: center;
-            position: relative;
-        }
-
         .reader-container img {
             width: 100%;
             height: auto;
@@ -134,151 +16,513 @@
             pointer-events: none; 
             transition: transform 0.1s ease;
         }
-
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        button.action-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        button.action-btn:hover { background-color: #2980b9; }
-        button.action-btn:disabled { background-color: #7f8c8d; cursor: not-allowed; }
-
-        .page-info {
-            font-size: 18px;
-            font-weight: bold;
-            color: #ecf0f1;
-        }
-
-        /* สไตล์ช่องกรองหน้ากระโดด */
-        .jump-box {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: #34495e;
-            padding: 5px 10px;
-            border-radius: 5px;
-        }
-        .jump-box input {
-            width: 60px;
-            padding: 6px;
-            font-size: 16px;
-            text-align: center;
-            border-radius: 4px;
-            border: 1px solid #7f8c8d;
-            background: #fff;
-            color: #333;
-        }
-        .jump-box button {
-            background-color: #27ae60;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            font-size: 14px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .jump-box button:hover { background-color: #219653; }
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body class="bg-gray-50 font-sans" oncontextmenu="return false;">
 
-    <!-- หน้าที่ 1: รายการหนังสือทั้งหมด -->
-    <div id="library-view">
-        <h2>📚 ชั้นหนังสือออนไลน์</h2>
-        <div class="subtitle">เลือกหนังสือที่คุณต้องการอ่าน</div>
-        <div class="book-grid" id="book-grid">กำลังโหลดรายการหนังสือ...</div>
-    </div>
-
-    <!-- หน้าที่ 2: โปรแกรมอ่านหนังสือ -->
-    <div id="reader-view">
-        <div class="top-nav">
-            <button class="back-btn" onclick="backToLibrary()">⬅ กลับไปหน้าชั้นหนังสือ</button>
-            <div class="zoom-controls">
-                <button onclick="zoomIn()">🔍 ซูมเข้า</button>
-                <button onclick="zoomOut()">🔎 ซูมออก</button>
-                <button onclick="resetZoom()">1:1</button>
-                <button onclick="fitToWidth()">↔ เต็มจอ</button>
+    <!-- ================= SECTION: หน้าจอเข้าสู่ระบบ (Login View) ================= -->
+    <div id="login-section" class="min-h-screen flex items-center justify-center bg-gray-900 px-4">
+        <div class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 space-y-6">
+            <div class="text-center">
+                <h1 class="text-2xl font-bold text-gray-800">📚 RentNovel</h1>
+                <p class="text-sm text-gray-500 mt-1">เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">เลือกอีเมลผู้ใช้งาน</label>
+                    <select id="login-email-select" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-800 bg-white">
+                        <option value="">-- กำลังโหลดรายชื่อผู้ใช้ --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน (Password)</label>
+                    <input type="password" id="login-password-input" placeholder="กรอกรหัสผ่านของคุณ" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-800">
+                </div>
+                <button onclick="loginUser()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition shadow">
+                    เข้าสู่ระบบ
+                </button>
             </div>
         </div>
+    </div>
 
-        <h2 id="reader-book-title">ชื่อหนังสือ</h2>
+    <!-- ================= SECTION: ระบบหลัก (Main App View) ================= -->
+    <div id="app-section" class="hidden min-h-screen flex flex-col">
+        <!-- ส่วนหัว (Navbar) -->
+        <nav class="bg-indigo-600 text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+                <h1 class="text-xl font-bold">📚 RentNovel</h1>
+                <div class="flex items-center space-x-4">
+                    <span id="user-display" class="text-sm">กำลังโหลดข้อมูล...</span>
+                    <button onclick="logoutUser()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition">ออกจากระบบ</button>
+                </div>
+            </div>
+        </nav>
 
-        <div class="reader-container" id="container-box">
-            <img id="page-image" src="" alt="หน้าหนังสือ">
-        </div>
-
-        <div class="controls">
-            <button class="action-btn" id="prev-btn" onclick="prevPage()">◀ หน้าก่อนหน้า</button>
-            <span class="page-info" id="page-indicator">กำลังโหลด...</span>
-            <button class="action-btn" id="next-btn" onclick="nextPage()">หน้าถัดไป ▶</button>
+        <!-- เนื้อหาหลัก -->
+        <main class="max-w-7xl mx-auto px-4 py-8 space-y-8 flex-grow w-full">
             
-            <!-- ช่องกรอกเพื่อกระโดดไปหน้าที่ต้องการ -->
-            <div class="jump-box">
-                <input type="number" id="jump-input" min="1" placeholder="ไปหน้า">
-                <button onclick="jumpToPage()">ไป</button>
+            <!-- หน้าหลักสมาชิก -->
+            <div id="main-member-view" class="space-y-8">
+                <!-- 1. ส่วนแสดงคะแนนคงเหลือ -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-medium opacity-90">⭐ คะแนนสะสมคงเหลือของคุณ</h2>
+                        <p class="text-4xl font-extrabold mt-1"><span id="user-points-display">0</span> <span class="text-xl font-normal">แต้ม</span></p>
+                    </div>
+                    <button onclick="loadUserData()" class="bg-white text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-lg text-sm font-semibold shadow transition">
+                        🔄 รีเฟรชข้อมูล
+                    </button>
+                </div>
+
+                <!-- 2. ชั้นหนังสือของฉัน -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-lg font-bold text-gray-800 mb-6">📖 ชั้นหนังสือของฉัน (เช่าอ่าน 3 วัน)</h2>
+                    <div id="my-shelf-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        <p class="text-gray-500 text-sm col-span-full">กำลังโหลดชั้นหนังสือ...</p>
+                    </div>
+                </div>
+
+                <!-- 3. รายการหนังสือในร้าน -->
+                <div class="bg-white p-6 rounded-xl shadow-md space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-gray-800">📚 รายการหนังสือนิยายทั้งหมดในร้าน</h2>
+                        <span id="total-books-count" class="text-sm text-gray-500">ทั้งหมด 0 เรื่อง</span>
+                    </div>
+
+                    <div id="shop-books-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        <p class="text-gray-500 text-sm col-span-full">กำลังโหลดรายการหนังสือ...</p>
+                    </div>
+
+                    <div id="pagination-container" class="flex justify-center items-center space-x-2 pt-4"></div>
+                </div>
             </div>
-        </div>
+
+            <!-- หน้าอ่านหนังสือ -->
+            <div id="reader-view" class="hidden flex-col items-center space-y-6">
+                <div class="w-full flex justify-between items-center bg-white p-4 rounded-xl shadow-md flex-wrap gap-4">
+                    <button onclick="backToMainView()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        ⬅ กลับไปหน้าหลัก
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="zoomIn()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm">🔍 ซูมเข้า</button>
+                        <button onclick="zoomOut()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm">🔎 ซูมออก</button>
+                        <button onclick="resetZoom()" class="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm">1:1</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-md w-full flex flex-col items-center space-y-4">
+                    <h2 id="reader-book-title" class="text-xl font-bold text-gray-800 text-center">ชื่อหนังสือ</h2>
+
+                    <div class="reader-container bg-slate-900 p-4 rounded-lg w-full max-w-4xl overflow-auto text-center" id="container-box">
+                        <img id="page-image" src="" alt="หน้าหนังสือ" class="mx-auto">
+                    </div>
+
+                    <div class="flex flex-wrap justify-center items-center gap-4 mt-4">
+                        <button id="prev-btn" onclick="prevPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400">
+                            ◀ หน้าก่อนหน้า
+                        </button>
+                        <span id="page-indicator" class="text-base font-bold text-gray-700">กำลังโหลด...</span>
+                        <button id="next-btn" onclick="nextPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400">
+                            หน้าถัดไป ▶
+                        </button>
+                        
+                        <div class="flex items-center space-x-2 bg-gray-100 p-2 rounded-lg border">
+                            <input type="number" id="jump-input" min="1" placeholder="ไปหน้า" class="w-16 p-1 text-center border rounded text-sm">
+                            <button onclick="jumpToPage()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">ไป</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
     </div>
 
-    <!-- โหลดรายชื่อหนังสือจากไฟล์ books.js แยกต่างหาก -->
-    <script src="books.js"></script>
+    <!-- Firebase SDKs & Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    <script>
-        let currentBook = null;
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4GnDUaCk0aL1QTFHlNgLnNUVZKTOKI_I",
+            authDomain: "rentnovel.firebaseapp.com",
+            projectId: "rentnovel",
+            storageBucket: "rentnovel.firebasestorage.app",
+            messagingSenderId: "183991328648",
+            appId: "1:183991328648:web:578cf5f3e3f6db00c0a43d",
+            measurementId: "G-7HYFQGP9N2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentUserEmail = "";
+        let currentUserIdDoc = null;
+        let userPoints = 0;
+        let userPurchasedBooks = {};
+        
+        let allShopBooks = [];
+        let allUsersData = [];
         let currentPage = 1;
+        const itemsPerPage = 10;
+
+        let currentBookFolder = null;
         let totalPages = 0;
         let currentScale = 1;
 
-        function renderLibrary() {
-            const grid = document.getElementById('book-grid');
-            grid.innerHTML = '';
+        window.onload = async function() {
+            await fetchAllUsersForLogin();
+            const savedEmail = sessionStorage.getItem("userEmail");
+            if (savedEmail) {
+                currentUserEmail = savedEmail;
+                showAppSection();
+            } else {
+                showLoginSection();
+            }
+        }
 
-            if (typeof books === 'undefined' || books.length === 0) {
-                grid.innerHTML = '<p>ไม่มีรายการหนังสือในระบบ</p>';
+        async function fetchAllUsersForLogin() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "users"));
+                allUsersData = [];
+                const selectElement = document.getElementById('login-email-select');
+                selectElement.innerHTML = '<option value="">-- กรุณาเลือกอีเมลผู้ใช้งาน --</option>';
+
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    allUsersData.push({ id: docSnap.id, ...data });
+                    if (data.email) {
+                        selectElement.innerHTML += `<option value="${data.email}">${data.email}</option>`;
+                    }
+                });
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        }
+
+        window.loginUser = function() {
+            const selectedEmail = document.getElementById('login-email-select').value;
+            const passwordInput = document.getElementById('login-password-input').value;
+
+            if (!selectedEmail) {
+                alert('กรุณาเลือกอีเมลผู้ใช้งาน');
                 return;
             }
 
-            books.forEach((book, index) => {
-                grid.innerHTML += `
-                    <div class="book-card" onclick="openBook(${index})">
-                        <img src="output_books/${book.folderName}/page_1.jpg" alt="ปกหนังสือ" onerror="this.src='https://via.placeholder.com/100x140?text=No+Cover'">
-                        <h3>${book.title}</h3>
-                        <p>คลิกเพื่ออ่าน</p>
+            const targetUser = allUsersData.find(u => u.email === selectedEmail);
+            if (!targetUser) {
+                alert('ไม่พบข้อมูลผู้ใช้งานนี้ในระบบ');
+                return;
+            }
+
+            const dbPassword = targetUser.password || targetUser.pin || "";
+            if (dbPassword && dbPassword !== passwordInput) {
+                alert('รหัสผ่านไม่ถูกต้อง!');
+                return;
+            }
+
+            currentUserEmail = selectedEmail;
+            sessionStorage.setItem("userEmail", currentUserEmail);
+            showAppSection();
+        }
+
+        window.logoutUser = function() {
+            sessionStorage.clear();
+            currentUserEmail = "";
+            document.getElementById('login-password-input').value = "";
+            showLoginSection();
+            fetchAllUsersForLogin();
+        }
+
+        function showLoginSection() {
+            document.getElementById('login-section').style.display = 'flex';
+            document.getElementById('app-section').style.display = 'none';
+        }
+
+        function showAppSection() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('app-section').style.display = 'flex';
+            document.getElementById('user-display',).innerText = `ผู้ใช้งาน: ${currentUserEmail}`;
+            loadUserData();
+        }
+
+        window.loadUserData = async function() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "users"));
+                allUsersData = [];
+                let foundUser = false;
+
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    allUsersData.push({ id: docSnap.id, ...data });
+
+                    if (data.email === currentUserEmail) {
+                        foundUser = true;
+                        currentUserIdDoc = docSnap.id;
+                        userPoints = data.points !== undefined ? data.points : 0;
+                        
+                        // แปลงข้อมูล purchasedBooks ให้รองรับทั้งแบบ Array และแบบ Object
+                        userPurchasedBooks = {};
+                        if (Array.isArray(data.purchasedBooks)) {
+                            // ถ้าเก็บเป็นอาเรย์ ให้เซ็ตเวลาหมดอายุเป็นอีก 3 วันนับจากตอนนี้เป็นค่าเริ่มต้น
+                            const defaultExpire = Date.now() + (3 * 24 * 60 * 60 * 1000);
+                            data.purchasedBooks.forEach(bookName => {
+                                if (typeof bookName === 'string') {
+                                    userPurchasedBooks[bookName] = defaultExpire;
+                                }
+                            });
+                        } else if (data.purchasedBooks && typeof data.purchasedBooks === 'object') {
+                            userPurchasedBooks = data.purchasedBooks;
+                        }
+                    }
+                });
+
+                if (!foundUser) {
+                    alert('ไม่พบอีเมลนี้ในระบบฐานข้อมูล');
+                    logoutUser();
+                    return;
+                }
+
+                document.getElementById('user-points-display').innerText = userPoints;
+                renderMyShelf();
+                loadShopBooks();
+            } catch (error) {
+                console.error("Error loading user data:", error);
+            }
+        }
+
+        function getTimeRemaining(endtime) {
+            const total = endtime - Date.now();
+            if (total <= 0) return null;
+
+            const seconds = Math.floor((total / 1000) % 60);
+            const minutes = Math.floor((total / 1000 / 60) % 60);
+            const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
+            const days = Math.floor(total / (1000 * 60 * 60 * 24));
+
+            return { total, days, hours, minutes };
+        }
+
+        function renderMyShelf() {
+            const shelfContainer = document.getElementById('my-shelf-container');
+            shelfContainer.innerHTML = '';
+
+            const bookKeys = Object.keys(userPurchasedBooks);
+            if (bookKeys.length === 0) {
+                shelfContainer.innerHTML = `<p class="text-gray-500 text-sm col-span-full">คุณยังไม่มีหนังสือในชั้นหนังสือ ลองเลือกเช่าหนังสือนิยายจากด้านล่างได้เลยครับ</p>`;
+                return;
+            }
+
+            bookKeys.forEach((bookName) => {
+                const expireTime = userPurchasedBooks[bookName];
+                const timeRem = getTimeRemaining(expireTime);
+                const coverPath = `output_books/${bookName}/page_1.jpg`;
+
+                let timeText = "";
+                let isExpired = false;
+
+                if (!expireTime || !timeRem || timeRem.total <= 0) {
+                    isExpired = true;
+                    timeText = `<span class="text-red-500 font-bold text-xs">⏰ หมดอายุการอ่านแล้ว</span>`;
+                } else {
+                    timeText = `<span class="text-orange-600 font-semibold text-[11px]">⏳ เหลือเวลา: ${timeRem.days}วัน ${timeRem.hours}ชม.</span>`;
+                }
+
+                shelfContainer.innerHTML += `
+                    <div class="flex flex-col items-center group">
+                        <div class="w-28 h-40 rounded shadow-md overflow-hidden relative bg-gray-100 border border-gray-200 ${isExpired ? 'opacity-50 grayscale' : 'cursor-pointer'}" ${!isExpired ? `onclick="openReader('${bookName}')"` : ''}>
+                            <img src="${coverPath}" alt="${bookName}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/100x140?text=No+Cover';">
+                            ${!isExpired ? `
+                            <div class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                <span class="bg-indigo-600 text-white text-[10px] px-2 py-1 rounded font-semibold shadow">📖 คลิกเพื่ออ่าน</span>
+                            </div>` : ''}
+                        </div>
+                        <p class="text-xs font-semibold text-gray-800 mt-2 text-center line-clamp-1 w-full" title="${bookName}">${bookName}</p>
+                        <div class="mt-1 text-center">${timeText}</div>
                     </div>
                 `;
             });
         }
 
-        async function openBook(index) {
-            currentBook = books[index];
+        async function loadShopBooks() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "books"));
+                allShopBooks = [];
+
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    let bookName = data.name || docSnap.id;
+                    if (bookName.includes('\\')) bookName = bookName.split('\\').pop();
+                    if (bookName.includes('/')) bookName = bookName.split('/').pop();
+
+                    allShopBooks.push({
+                        id: docSnap.id,
+                        name: bookName,
+                        points: data.points !== undefined ? data.points : 20
+                    });
+                });
+
+                allShopBooks.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+                document.getElementById('total-books-count').innerText = `ทั้งหมด ${allShopBooks.length} เรื่อง`;
+
+                renderShopBooksPage(1);
+            } catch (error) {
+                document.getElementById('shop-books-container').innerHTML = `<p class="text-red-500 text-sm col-span-full">เกิดข้อผิดพลาดในการโหลดหนังสือ</p>`;
+            }
+        }
+
+        window.renderShopBooksPage = function(page) {
+            currentPage = page;
+            const container = document.getElementById('shop-books-container');
+            container.innerHTML = '';
+
+            if (allShopBooks.length === 0) {
+                container.innerHTML = `<p class="text-gray-500 text-sm col-span-full">ยังไม่มีหนังสือนิยายในระบบ</p>`;
+                document.getElementById('pagination-container').innerHTML = '';
+                return;
+            }
+
+            const startIndex = (page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedItems = allShopBooks.slice(startIndex, endIndex);
+
+            paginatedItems.forEach((book) => {
+                const coverPath = `output_books/${book.name}/page_1.jpg`;
+                const isOwnedByMe = userPurchasedBooks[book.name] && userPurchasedBooks[book.name] > Date.now();
+
+                let latestExpireTime = Date.now();
+                let hasActiveRenter = false;
+
+                for (let u of allUsersData) {
+                    if (u.purchasedBooks) {
+                        // รองรับทั้งกรณีซื้อแบบ Object หรือ Array ในระบบของ User อื่น ๆ ด้วย
+                        if (typeof u.purchasedBooks === 'object' && !Array.isArray(u.purchasedBooks)) {
+                            let expire = u.purchasedBooks[book.name];
+                            if (expire && expire > Date.now()) {
+                                hasActiveRenter = true;
+                                if (expire > latestExpireTime) {
+                                    latestExpireTime = expire;
+                                }
+                            }
+                        } else if (Array.isArray(u.purchasedBooks)) {
+                            if (u.purchasedBooks.includes(book.name)) {
+                                hasActiveRenter = true;
+                            }
+                        }
+                    }
+                }
+
+                let actionButton = '';
+                if (isOwnedByMe) {
+                    actionButton = `<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded font-semibold mt-1">อยู่ในชั้นของคุณแล้ว</span>`;
+                } else if (hasActiveRenter) {
+                    const rem = getTimeRemaining(latestExpireTime);
+                    const remStr = rem ? `${rem.days}วัน ${rem.hours}ชม.` : `เร็วๆ นี้`;
+                    
+                    actionButton = `
+                        <div class="mt-1 text-center flex flex-col items-center">
+                            <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">มีผู้เช่าอยู่ (จองคิวต่อได้)</span>
+                            <span class="text-[9px] text-gray-500 mt-0.5">ว่างในอีก: ${remStr}</span>
+                            <button onclick="buyBookWithPoints('${book.name}', ${book.points}, ${latestExpireTime})" class="mt-1 bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-[4px] text-[10px] font-semibold transition">จองคิวเช่าต่อ (${book.points} แต้ม)</button>
+                        </div>
+                    `;
+                } else {
+                    actionButton = `<button onclick="buyBookWithPoints('${book.name}', ${book.points}, null)" class="mt-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-[4px] text-[10px] font-semibold transition">เช่า 3 วัน (${book.points} แต้ม)</button>`;
+                }
+
+                container.innerHTML += `
+                    <div class="flex flex-col items-center group">
+                        <div class="w-28 h-40 rounded shadow-md overflow-hidden relative bg-gray-100 border border-gray-200">
+                            <img src="${coverPath}" alt="${book.name}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://via.placeholder.com/100x140?text=No+Cover';">
+                            <div class="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-[9px] px-1.5 py-0.5 rounded">
+                                ${book.points} แต้ม
+                            </div>
+                        </div>
+                        <p class="text-xs font-semibold text-gray-800 mt-2 text-center line-clamp-1 w-full" title="${book.name}">${book.name}</p>
+                        ${actionButton}
+                    </div>
+                `;
+            });
+
+            renderPaginationControls();
+        }
+
+        function renderPaginationControls() {
+            const totalPagesCount = Math.ceil(allShopBooks.length / itemsPerPage);
+            const container = document.getElementById('pagination-container');
+            container.innerHTML = '';
+
+            if (totalPagesCount <= 1) return;
+
+            container.innerHTML += `
+                <button onclick="renderShopBooksPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm"'}>
+                    ก่อนหน้า
+                </button>
+            `;
+
+            for (let i = 1; i <= totalPagesCount; i++) {
+                const activeClass = i === currentPage ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+                container.innerHTML += `
+                    <button onclick="renderShopBooksPage(${i})" class="px-3 py-1 rounded text-sm font-medium ${activeClass}">${i}</button>
+                `;
+            }
+
+            container.innerHTML += `
+                <button onclick="renderShopBooksPage(${currentPage + 1})" ${currentPage === totalPagesCount ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm"'}>
+                    ถัดไป
+                </button>
+            `;
+        }
+
+        window.buyBookWithPoints = async function(bookName, bookPoints, currentLatestExpire) {
+            if (userPoints < bookPoints) {
+                alert(`คะแนนของคุณไม่เพียงพอ! ต้องการ ${bookPoints} แต้ม แต่คุณมี ${userPoints} แต้ม`);
+                return;
+            }
+
+            let confirmMsg = `คุณต้องการใช้ ${bookPoints} แต้ม เพื่อเช่าหนังสือ "${bookName}" ใช่หรือไม่?`;
+            if (currentLatestExpire && currentLatestExpire > Date.now()) {
+                confirmMsg = `หนังสือเรื่องนี้มีผู้เช่าอยู่ ระบบจะทำการจองคิวต่อจากผู้เช่าเดิมทันที (นับเวลาเพิ่มให้อีก 3 วันหลังจากคิวเดิมหมด) ยืนยันการใช้ ${bookPoints} แต้มหรือไม่?`;
+            }
+
+            if (confirm(confirmMsg)) {
+                try {
+                    const newPoints = userPoints - bookPoints;
+                    
+                    let baseStartTime = (currentLatestExpire && currentLatestExpire > Date.now()) ? currentLatestExpire : Date.now();
+                    const newExpireTime = baseStartTime + (3 * 24 * 60 * 60 * 1000);
+
+                    userPurchasedBooks[bookName] = newExpireTime;
+                    const userRef = doc(db, "users", currentUserIdDoc);
+
+                    await updateDoc(userRef, {
+                        points: newPoints,
+                        purchasedBooks: userPurchasedBooks
+                    });
+
+                    alert(`เช่า/จองคิวหนังสือสำเร็จ! เพิ่ม "${bookName}" ลงในชั้นหนังสือของคุณแล้ว`);
+                    loadUserData();
+                } catch (error) {
+                    alert('เกิดข้อผิดพลาดในการเช่าหนังสือ: ' + error.message);
+                }
+            }
+        }
+
+        window.openReader = async function(bookName) {
+            currentBookFolder = bookName;
             currentPage = 1;
             currentScale = 1;
 
-            document.getElementById('library-view').style.display = 'none';
+            document.getElementById('main-member-view').style.display = 'none';
             document.getElementById('reader-view').style.display = 'flex';
-            document.getElementById('reader-book-title').innerText = currentBook.title;
+            document.getElementById('reader-book-title').innerText = bookName;
             document.getElementById('page-indicator').innerText = 'กำลังตรวจสอบจำนวนหน้า...';
 
             await detectTotalPages();
         }
 
-        function backToLibrary() {
+        window.backToMainView = function() {
             document.getElementById('reader-view').style.display = 'none';
-            document.getElementById('library-view').style.display = 'flex';
+            document.getElementById('main-member-view').style.display = 'block';
         }
 
         async function detectTotalPages() {
@@ -287,7 +531,7 @@
 
             while (exists && page < 2000) {
                 let img = new Image();
-                let path = `output_books/${currentBook.folderName}/page_${page}.jpg`;
+                let path = `output_books/${currentBookFolder}/page_${page}.jpg`;
                 
                 let check = await new Promise((resolve) => {
                     img.onload = () => resolve(true);
@@ -317,10 +561,10 @@
             const nextBtn = document.getElementById('next-btn');
             const jumpInput = document.getElementById('jump-input');
 
-            imgElement.src = `output_books/${currentBook.folderName}/page_${currentPage}.jpg`;
+            imgElement.src = `output_books/${currentBookFolder}/page_${currentPage}.jpg`;
             indicator.innerText = `หน้า ${currentPage} / ${totalPages}`;
             
-            jumpInput.value = currentPage; // อัปเดตเลขในช่องกรอกให้ตรงกับหน้าปัจจุบัน
+            jumpInput.value = currentPage;
             jumpInput.max = totalPages;
 
             prevBtn.disabled = currentPage === 1;
@@ -329,7 +573,8 @@
             applyZoom();
         }
 
-        function nextPage() {
+        window.nextPage = function() {
+            page => {}
             if (currentPage < totalPages) {
                 currentPage++;
                 updateBookView();
@@ -337,7 +582,7 @@
             }
         }
 
-        function prevPage() {
+        window.prevPage = function() {
             if (currentPage > 1) {
                 currentPage--;
                 updateBookView();
@@ -345,8 +590,7 @@
             }
         }
 
-        // ฟังก์ชันกระโดดไปหน้าที่กรอก
-        function jumpToPage() {
+        window.jumpToPage = function() {
             const jumpInput = document.getElementById('jump-input');
             let targetPage = parseInt(jumpInput.value);
 
@@ -363,31 +607,19 @@
             window.scrollTo(0, 0);
         }
 
-        // กด Enter ในช่องกรอกเพื่อกระโดดได้ทันที
-        document.getElementById('jump-input').addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                jumpToPage();
-            }
-        });
-
-        function zoomIn() {
+        window.zoomIn = function() {
             currentScale += 0.2;
             applyZoom();
         }
 
-        function zoomOut() {
+        window.zoomOut = function() {
             if (currentScale > 0.4) {
                 currentScale -= 0.2;
                 applyZoom();
             }
         }
 
-        function resetZoom() {
-            currentScale = 1;
-            applyZoom();
-        }
-
-        function fitToWidth() {
+        window.resetZoom = function() {
             currentScale = 1;
             applyZoom();
         }
@@ -400,16 +632,12 @@
         document.addEventListener('keydown', function(event) {
             if (document.getElementById('reader-view').style.display === 'flex') {
                 if (event.key === 'ArrowRight') {
-                    nextPage();
+                    window.nextPage();
                 } else if (event.key === 'ArrowLeft') {
-                    prevPage();
+                    window.prevPage();
                 }
             }
         });
-
-        // เริ่มต้นแสดงผลชั้นหนังสือทันที
-        renderLibrary();
     </script>
-
 </body>
 </html>
