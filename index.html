@@ -531,7 +531,8 @@
                     allShopBooks.push({
                         id: docSnap.id,
                         name: bookName,
-                        points: data.points !== undefined ? data.points : 20
+                        points: data.points !== undefined ? data.points : 20,
+                        totalPages: data.totalPages || 0 // ดึงจำนวนหน้าที่แอดมินตั้งค่าไว้
                     });
                 });
 
@@ -699,9 +700,11 @@
             document.getElementById('main-member-view').style.display = 'none';
             document.getElementById('reader-view').style.display = 'flex';
             document.getElementById('reader-book-title').innerText = bookName;
-            document.getElementById('page-indicator').innerText = 'กำลังตรวจสอบจำนวนหน้า...';
+            document.getElementById('page-indicator').innerText = 'กำลังโหลดหน้าหนังสือ...';
 
-            await detectTotalPages();
+            // ดึงจำนวนหน้าจากข้อมูลหนังสือใน allShopBooks ทันที (ไม่ต้องวนลูปเช็คทีละหน้าให้ช้า)
+            const foundBook = allShopBooks.find(b => b.name === bookName);
+            totalPages = foundBook && foundBook.totalPages ? foundBook.totalPages : 100; // ค่าสำรองเผื่อกรณีหนังสือเก่า
 
             let savedPage = userProgress[bookName] ? parseInt(userProgress[bookName]) : 1;
             if (isNaN(savedPage) || savedPage < 1) savedPage = 1;
@@ -715,30 +718,6 @@
             document.getElementById('reader-view').style.display = 'none';
             document.getElementById('main-member-view').style.display = 'block';
             loadUserData();
-        }
-
-        async function detectTotalPages() {
-            let page = 1;
-            let exists = true;
-
-            while (exists && page < 2000) {
-                let img = new Image();
-                let path = `output_books/${currentBookFolder}/page_${page}.jpg`;
-                
-                let check = await new Promise((resolve) => {
-                    img.onload = () => resolve(true);
-                    img.onerror = () => resolve(false);
-                    img.src = path;
-                });
-
-                if (check) {
-                    page++;
-                } else {
-                    exists = false;
-                }
-            }
-            
-            totalPages = page - 1;
         }
 
         function updateBookView() {
