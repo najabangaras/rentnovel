@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RentNovel - ระบบเช่านิยายออนไลน์ (PDF Viewer)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // กำหนด Worker สำหรับ PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        
+        .reader-container {
+            touch-action: pan-x pan-y pinch-zoom;
+            overflow: auto; 
+            -webkit-overflow-scrolling: touch;
+            transition: background-color 0.3s ease;
+        }
+        
+        .theme-normal { background-color: #f8fafc; } 
+        .theme-dark   { background-color: #000000; } 
+
+        #pdf-canvas {
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            transition: filter 0.3s ease;
+        }
+
+        .theme-dark #pdf-canvas {
+            filter: invert(1) hue-rotate(180deg) brightness(0.95);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col" oncontextmenu="return false;">
+
+    <!-- ================= SECTION: หน้าจอเข้าสู่ระบบและสมัครสมาชิก ================= -->
+    <div id="login-section" class="min-h-screen flex items-center justify-center bg-gray-900 px-4">
+        <div class="max-w-md w-full bg-white rounded-xl shadow-lg p-8 space-y-6">
+            
+            <!-- ฟอร์มเข้าสู่ระบบ -->
+            <div id="form-login" class="space-y-6">
+                <div class="text-center">
+                    <h1 class="text-2xl font-bold text-indigo-600">📚 RentNovel</h1>
+                    <p class="text-sm text-gray-500 mt-1">เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                        <input type="email" id="login-username-input" placeholder="กรอกอีเมลที่ใช้สมัคร" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-800">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน (Password)</label>
+                        <input type="password" id="login-password-input" placeholder="กรอกรหัสผ่านของคุณ" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-800">
+                    </div>
+                    <button onclick="loginUser()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition shadow">
+                        เข้าสู่ระบบ
+                    </button>
+                </div>
+                <div class="text-center pt-2 border-t">
+                    <p class="text-sm text-gray-600">ยังไม่มีบัญชีผู้ใช้งาน?</p>
+                    <button onclick="toggleAuthMode('register')" class="mt-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm transition">
+                        ✍ สมัครสมาชิกใหม่
+                    </button>
+                </div>
+            </div>
+
+            <!-- ฟอร์มสมัครสมาชิกใหม่ (รันเลขไอดี 1, 2, 3...) -->
+            <div id="form-register" class="space-y-6 hidden">
+                <div class="text-center">
+                    <h1 class="text-2xl font-bold text-emerald-600">📚 สมัครสมาชิกใหม่</h1>
+                    <p class="text-sm text-gray-500 mt-1">สร้างบัญชีเพื่อเช่านิยาย</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล (ใช้เข้าสู่ระบบ)</label>
+                        <input type="email" id="reg-email-input" placeholder="เช่น name@gmail.com" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-gray-800">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อที่แสดง (Username)</label>
+                        <input type="text" id="reg-username-input" placeholder="ตั้งชื่อ Username ของคุณ" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-gray-800">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน (Password)</label>
+                        <input type="password" id="reg-password-input" placeholder="กำหนดรหัสผ่าน (อย่างน้อย 6 ตัว)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-gray-800">
+                    </div>
+                    <button onclick="registerUser()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg transition shadow">
+                        ยืนยันการสมัครสมาชิก
+                    </button>
+                </div>
+                <div class="text-center pt-2 border-t">
+                    <p class="text-sm text-gray-600">มีบัญชีผู้ใช้งานอยู่แล้ว?</p>
+                    <button onclick="toggleAuthMode('login')" class="mt-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm transition">
+                        ⬅ กลับไปหน้าเข้าสู่ระบบ
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= SECTION: ระบบหลัก (Main App View) ================= -->
+    <div id="app-section" class="hidden min-h-screen flex flex-col">
+        <!-- ส่วนหัว (Navbar) -->
+        <nav class="bg-indigo-600 text-white shadow-md">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+                <h1 class="text-xl font-bold">📚 RentNovel</h1>
+                <div class="flex items-center space-x-4">
+                    <span id="user-display" class="text-sm">กำลังโหลดข้อมูล...</span>
+                    <button onclick="logoutUser()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition shadow">ออกจากระบบ</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- เนื้อหาหลัก -->
+        <main class="max-w-7xl mx-auto px-4 py-8 space-y-8 flex-grow w-full">
+            
+            <!-- หน้าหลักสมาชิก -->
+            <div id="main-member-view" class="space-y-8">
+                <!-- 1. ส่วนแสดงคะแนนคงเหลือ และปุ่มขอเติมแต้ม -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-xl shadow-md flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h2 class="text-lg font-medium opacity-90">⭐ คะแนนสะสมคงเหลือของคุณ</h2>
+                        <p class="text-4xl font-extrabold mt-1"><span id="user-points-display">0</span> <span class="text-xl font-normal">แต้ม</span></p>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="openTopupModal()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow transition">
+                            💳 ขอเติมแต้ม
+                        </button>
+                        <button onclick="openTopupHistory()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow transition">
+                            📜 ประวัติการเติมแต้ม
+                        </button>
+                        <button onclick="loadUserData()" class="bg-white text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-lg text-sm font-semibold shadow transition">
+                            🔄 รีเฟรชข้อมูล
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. ชั้นหนังสือของฉัน -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-lg font-bold text-gray-800 mb-1">📖 ชั้นหนังสือของฉัน (รวมคิวจองและหนังสือที่กำลังอ่าน)</h2>
+                    <p class="text-xs text-gray-500 mb-6">ต้องการยกเลิกคิวหรือขอคืนแต้ม? ติดต่อแอดมิน: <span id="contact-line" class="font-semibold text-indigo-600"></span></p>
+                    <div id="my-shelf-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        <p class="text-gray-500 text-sm col-span-full">กำลังโหลดชั้นหนังสือ...</p>
+                    </div>
+                </div>
+
+                <!-- 3. รายการหนังสือในร้าน -->
+                <div class="bg-white p-6 rounded-xl shadow-md space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-gray-800">📚 รายการหนังสือนิยายทั้งหมดในร้าน</h2>
+                        <span id="total-books-count" class="text-sm text-gray-500">ทั้งหมด 0 เรื่อง</span>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input id="shop-search" type="search" placeholder="🔍 ค้นหาชื่อเรื่อง..." oninput="onShopFilter()" class="flex-grow px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <select id="shop-cat" onchange="onShopFilter()" class="px-3 py-2 border rounded-lg text-sm bg-white"><option value="">ทุกหมวดหมู่</option></select>
+                        <select id="shop-sort" onchange="onShopFilter()" class="px-3 py-2 border rounded-lg text-sm bg-white">
+                            <option value="title">เรียงตามชื่อ ก-ฮ</option>
+                            <option value="priceAsc">ราคาถูก → แพง</option>
+                            <option value="priceDesc">ราคาแพง → ถูก</option>
+                            <option value="newest">เพิ่มล่าสุด</option>
+                        </select>
+                        <button id="fav-filter-btn" onclick="toggleFavFilter()" class="px-3 py-2 border rounded-lg text-sm bg-white hover:bg-gray-50 transition whitespace-nowrap">🤍 รายการโปรด</button>
+                    </div>
+
+                    <div id="shop-books-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        <p class="text-gray-500 text-sm col-span-full">กำลังโหลดรายการหนังสือ...</p>
+                    </div>
+
+                    <div id="pagination-container" class="flex justify-center items-center space-x-2 pt-4"></div>
+                </div>
+            </div>
+
+            <!-- หน้าอ่านหนังสือ PDF -->
+            <div id="reader-view" class="hidden flex-col items-center space-y-4 w-full max-w-full px-2">
+                <!-- แถบเครื่องมือด้านบน -->
+                <div class="w-full max-w-5xl flex justify-between items-center bg-white p-4 rounded-xl shadow-md flex-wrap gap-4">
+                    <button onclick="backToMainView()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        ⬅ กลับไปหน้าหลัก
+                    </button>
+                    <h2 id="reader-book-title" class="text-base sm:text-lg font-bold text-gray-800 text-center truncate max-w-xs">ชื่อหนังสือ</h2>
+                    
+                    <div class="flex items-center space-x-3 flex-wrap gap-2">
+                        <!-- ปุ่มเปลี่ยนโหมดสี -->
+                        <div class="flex items-center bg-gray-100 p-1 rounded-lg border space-x-1">
+                            <button onclick="setTheme('normal')" id="btn-theme-normal" title="โหมดปกติ" class="px-3 py-1 rounded text-xs font-semibold bg-white shadow-sm transition">☀️ ปกติ</button>
+                            <button onclick="setTheme('dark')" id="btn-theme-dark" title="โหมดกลางคืน" class="px-3 py-1 rounded text-xs font-semibold text-gray-600 hover:bg-gray-200 transition">🌙 มืด (พื้นดำ)</button>
+                        </div>
+
+                        <!-- แถบเลื่อน Slider ปรับขนาด Scale % -->
+                        <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1.5 rounded-lg border">
+                            <span class="text-xs font-semibold text-gray-700">🔍 <span id="zoom-percent-text">100</span>%</span>
+                            <input type="range" id="zoom-slider" min="50" max="250" value="100" step="5" oninput="onSliderZoom(this.value)" class="w-20 sm:w-24 accent-teal-600 cursor-pointer">
+                            <button id="zoom-reset-btn" onclick="resetZoom()" class="bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white px-2 py-1 rounded text-xs shadow transition">ค่าเริ่มต้น</button>
+                            <button id="zoom-lock-btn" onclick="toggleZoomLock()" title="ล็อกขนาดซูมและตำแหน่งการเลื่อน" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs shadow transition">🔓 ล็อก</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- พื้นที่แสดงผล Canvas PDF -->
+                <div class="reader-container theme-normal w-full max-w-5xl h-[78vh] p-4 rounded-xl relative shadow-inner border border-gray-200 flex flex-col items-start" id="container-box">
+                    <canvas id="pdf-canvas" class="select-none my-auto"></canvas>
+                </div>
+
+                <!-- แถบควบคุมเปลี่ยนหน้าด้านล่าง -->
+                <div class="w-full max-w-5xl bg-white p-3 rounded-xl shadow-md flex flex-wrap justify-center items-center gap-4">
+                    <button id="prev-btn" onclick="prevPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400 transition">
+                        ◀ หน้าก่อนหน้า
+                    </button>
+                    <span id="page-indicator" class="text-sm sm:text-base font-bold text-gray-700">กำลังโหลด...</span>
+                    <button id="next-btn" onclick="nextPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400 transition">
+                        หน้าถัดไป ▶
+                    </button>
+                    
+                    <button id="bm-btn" onclick="toggleBookmark()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-sm font-semibold transition">🔖 คั่นหน้านี้</button>
+                    <select id="bm-select" onchange="jumpToBookmark(this.value)" class="hidden px-2 py-2 border rounded-lg text-sm bg-white"></select>
+                    <div class="flex items-center space-x-2 bg-gray-100 p-1.5 rounded-lg border">
+                        <input type="number" id="jump-input" min="1" placeholder="ไปหน้า" class="w-16 p-1 text-center border rounded text-sm outline-none">
+                        <button onclick="jumpToPage()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition">ไป</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ================= MODAL: หน้าต่างขอเติมแต้ม ================= -->
+    <div id="topup-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-bold text-gray-800">💳 แจ้งขอเติมแต้ม / ชำระเงิน</h3>
+            <p class="text-sm text-gray-500">กรุณาโอนเงินผ่านบัญชีร้าน จากนั้นกรอกข้อมูลการโอนเพื่อให้แอดมินตรวจสอบและเติมแต้มให้ครับ</p>
+            <div class="bg-indigo-50 p-3 rounded-lg text-xs text-indigo-800 space-y-1">
+                <p class="font-semibold">📌 บัญชีสำหรับโอนเงิน:</p>
+                <p>ธนาคาร: กสิกรไทย (KBANK)</p>
+                <p>เลขที่บัญชี: 123-4-56789-0</p>
+                <p>ชื่อบัญชี: ร้าน RentNovel</p>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">จำนวนเงินที่โอน (บาท)</label>
+                    <input type="number" id="topup-amount-input" placeholder="เช่น 100" class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">หมายเหตุ / เลขที่อ้างอิงสลิป</label>
+                    <input type="text" id="topup-note-input" placeholder="เช่น โอนเวลา 12:30 น." class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">แนบรูปสลิปการโอน</label>
+                    <input type="file" id="topup-slip-input" accept="image/*" onchange="previewSlip(this)" class="w-full text-sm">
+                    <img id="topup-slip-preview" class="hidden mt-2 max-h-48 rounded-lg border mx-auto" alt="ตัวอย่างสลิป">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeTopupModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition">ยกเลิก</button>
+                <button id="topup-submit-btn" onclick="submitTopupRequest()" class="disabled:opacity-50 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">ยืนยันการแจ้งโอน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: ประวัติการขอเติมแต้ม ================= -->
+    <div id="topup-history-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl max-h-[90vh] flex flex-col">
+            <h3 class="text-lg font-bold text-gray-800">📜 ประวัติการขอเติมแต้ม</h3>
+            <div id="topup-history-list" class="space-y-2 overflow-y-auto text-sm"></div>
+            <div class="flex justify-end">
+                <button onclick="closeTopupHistory()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="book-info-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 px-4" onclick="if(event.target===this)closeBookInfo()">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl flex gap-4 max-h-[90vh] overflow-y-auto">
+            <img id="bi-cover" class="w-28 h-40 object-cover rounded shadow shrink-0 bg-gray-100" onerror="this.onerror=null;this.src=NO_COVER">
+            <div class="space-y-2 min-w-0">
+                <h3 id="bi-title" class="text-lg font-bold text-gray-800"></h3>
+                <p id="bi-cat" class="text-xs text-violet-600 font-semibold"></p>
+                <p id="bi-price" class="text-xs text-emerald-600 font-semibold"></p>
+                <p id="bi-syn" class="text-sm text-gray-600 whitespace-pre-line"></p>
+                <button onclick="closeBookInfo()" class="mt-2 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-semibold transition">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs & Script -->
+    <!-- ===== ตัวช่วยดูข้อผิดพลาดบนหน้าจอ (ชั่วคราว: ลบก่อนเปิดให้ลูกค้าใช้จริง) ===== -->
+<script>
+(function () {
+    function show(msg) {
+        var d = document.getElementById('dbg-banner');
+        if (!d) {
+            d = document.createElement('div'); d.id = 'dbg-banner';
+            d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#b91c1c;color:#fff;font:12px/1.4 sans-serif;padding:6px 10px;max-height:30vh;overflow:auto';
+            d.onclick = function () { d.remove(); };
+            if (document.body) document.body.appendChild(d);
+            else document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(d); });
+        }
+        d.textContent = msg + '  (แตะเพื่อปิด)';
+    }
+    window.addEventListener('error', function (e) { show('JS error: ' + e.message + ' [' + String(e.filename || '').split('/').pop() + ':' + e.lineno + ']'); });
+    window.addEventListener('unhandledrejection', function (e) { var r = e.reason; show('Promise error: ' + ((r && (r.code || r.message)) || r)); });
+})();
+</script>
+<script type="module">
+// ที่อยู่โฟลเดอร์ PDF (ลิงก์ Cloudflare Tunnel ชี้ไปที่ output_books) ต้องลงท้ายด้วย /
+// ถ้าเปิดทดสอบในเครื่อง ให้ใช้ 'output_books/' แทน
+const PDF_BASE = 'https://math-squad-supplier-differ.trycloudflare.com/';
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, runTransaction, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4GnDUaCk0aL1QTFHlNgLnNUVZKTOKI_I",
+            authDomain: "rentnovel.firebaseapp.com",
+            projectId: "rentnovel",
+            storageBucket: "rentnovel.firebasestorage.app",
+            messagingSenderId: "183991328648",
+            appId: "1:183991328648:web:578cf5f3e3f6db00c0a43d",
+            measurementId: "G-7HYFQGP9N2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // *** ใส่ช่องทางติดต่อแอดมินที่นี่ (เช่น LINE ID หรือเบอร์โทร) ***
+        const ADMIN_CONTACT = 'LINE: @najabangaras';
+        document.getElementById('contact-line').innerText = ADMIN_CONTACT;
+
+        let currentUsername = "";
+        let currentUserIdDoc = null;
+        let userNumericId = "";
+        let userPoints = 0;
+        let userPurchasedBooks = {};
+        let userProgress = {};
+        let cancelReqIds = new Set();   // รหัสหนังสือที่ส่งคำขอยกเลิกคิวไว้แล้ว
+        
+        let allShopBooks = [];
+        let queueMap = {};
+        const NO_COVER = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="140"><rect width="100%" height="100%" fill="#e5e7eb"/><text x="50" y="74" font-size="12" text-anchor="middle" fill="#9ca3af">No Cover</text></svg>');
+        let regPromise = null;
+        let shopCurrentPage = 1;
+        let shopQuery = '', shopSort = 'title', shopCat = '', favOnly = false;
+
+        // รายการโปรด: เก็บในเบราว์เซอร์ก่อน (ภายหลังค่อยย้ายขึ้น Firestore)
+        const favKey = () => 'favBooks_' + currentUserIdDoc;
+        function getFavs() { try { return JSON.parse(localStorage.getItem(favKey()) || '[]'); } catch (e) { return []; } }
+
+        function fillCategories() {
+            const sel = document.getElementById('shop-cat');
+            const cats = [...new Set(allShopBooks.map(b => b.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th'));
+            sel.innerHTML = '<option value="">ทุกหมวดหมู่</option>' + cats.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+            sel.value = cats.includes(shopCat) ? shopCat : '';
+        }
+        window.openBookInfo = function(id) {
+            const b = allShopBooks.find(x => x.id === id); if (!b) return;
+            document.getElementById('bi-cover').src = coverFor(b.name.trim());
+            document.getElementById('bi-title').innerText = b.title;
+            document.getElementById('bi-cat').innerText = b.category ? '🏷 ' + b.category : '';
+            document.getElementById('bi-syn').innerText = b.synopsis || 'ยังไม่มีคำโปรย';
+            document.getElementById('bi-price').innerText = b.points + ' แต้ม / 3 วัน';
+            document.getElementById('book-info-modal').style.display = 'flex';
+        }
+        window.closeBookInfo = function() { document.getElementById('book-info-modal').style.display = 'none'; }
+
+        function getShopList() {
+            let list = allShopBooks.slice();
+            const q = shopQuery.trim().toLowerCase();
+            if (q) list = list.filter(b => b.title.toLowerCase().includes(q));
+            if (shopCat) list = list.filter(b => b.category === shopCat);
+            if (favOnly) { const f = getFavs(); list = list.filter(b => f.includes(b.id)); }
+            const by = {
+                title: (a, b) => a.title.localeCompare(b.title, 'th'),
+                priceAsc: (a, b) => a.points - b.points || a.title.localeCompare(b.title, 'th'),
+                priceDesc: (a, b) => b.points - a.points || a.title.localeCompare(b.title, 'th'),
+                newest: (a, b) => (parseInt(b.id) || 0) - (parseInt(a.id) || 0)
+            };
+            return list.sort(by[shopSort] || by.title);
+        }
+        window.onShopFilter = function() {
+            shopQuery = document.getElementById('shop-search').value;
+            shopSort = document.getElementById('shop-sort').value;
+            shopCat = document.getElementById('shop-cat').value;
+            renderShopBooksPage(1);
+        }
+        window.toggleFavFilter = function() {
+            favOnly = !favOnly;
+            document.getElementById('fav-filter-btn').innerText = favOnly ? '❤️ รายการโปรด (เปิด)' : '🤍 รายการโปรด';
+            renderShopBooksPage(1);
+        }
+        window.toggleFav = function(id) {
+            const f = getFavs(), i = f.indexOf(id);
+            if (i >= 0) f.splice(i, 1); else f.push(id);
+            localStorage.setItem(favKey(), JSON.stringify(f));
+            renderShopBooksPage(shopCurrentPage);
+        }
+        const itemsPerPage = 10;
+
+        // ตัวแปรสำหรับระบบ PDF Viewer
+        let currentBookFolder = null;
+        let pdfDoc = null;
+        let currentPage = 1;
+        let totalPages = 0;
+        let currentScale = 1;  // ซูม: 1 = กว้างพอดีกรอบอ่าน (fit width)
+        let renderTask = null;
+        let pendingBottom = false;   // ย้อนหน้าด้วยลูกศรขึ้น: ให้ไปอยู่ท้ายหน้าก่อนหน้า
+        let lastSavedPage = 0;
+
+        window.onload = function() {
+            setTheme(localStorage.getItem("readerTheme") || "normal", false);
+        }
+
+        // สร้างเอกสารสมาชิก + รหัสสมาชิกเลขรัน (ใน transaction กันเลขซ้ำ)
+        async function ensureUserDoc(user, name) {
+            const ref = doc(db, "users", user.uid);
+            if ((await getDoc(ref)).exists()) return;
+            const cRef = doc(db, "meta", "userCounter");
+            await runTransaction(db, async (tx) => {
+                const c = await tx.get(cRef);
+                const next = (c.exists() ? Number(c.data().last) || 0 : 0) + 1;
+                tx.set(cRef, { last: next });
+                tx.set(ref, {
+                    username: name || user.displayName || user.email.split('@')[0],
+                    email: user.email, userId: String(next),
+                    points: 0, purchasedBooks: {}, progress: {}
+                });
+            });
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { currentUsername = ""; showLoginSection(); return; }
+            try {
+                if (regPromise) await regPromise.catch(() => {});
+                await ensureUserDoc(user);
+                currentUsername = user.displayName || user.email;
+                showAppSection();
+            } catch (e) {
+                console.error(e);
+                alert('เข้าสู่ระบบไม่สำเร็จ: ' + e.message);
+                signOut(auth);
+            }
+        });
+
+        function authErrorMsg(e) {
+            const m = {
+                'auth/invalid-credential': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+                'auth/wrong-password': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+                'auth/user-not-found': 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+                'auth/invalid-email': 'รูปแบบอีเมลไม่ถูกต้อง',
+                'auth/email-already-in-use': 'อีเมลนี้ถูกใช้สมัครแล้ว',
+                'auth/weak-password': 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร',
+                'auth/too-many-requests': 'ลองผิดหลายครั้งเกินไป กรุณารอสักครู่'
+            };
+            return m[e.code] || e.message;
+        }
+
+        window.toggleAuthMode = function(mode) {
+            const loginForm = document.getElementById('form-login');
+            const regForm = document.getElementById('form-register');
+            if (mode === 'register') {
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+            } else {
+                regForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+            }
+        }
+
+        window.loginUser = async function() {
+            const email = document.getElementById('login-username-input').value.trim();
+            const pw = document.getElementById('login-password-input').value;
+            if (!email || !pw) { alert('กรุณากรอกอีเมลและรหัสผ่าน'); return; }
+            try { await signInWithEmailAndPassword(auth, email, pw); }
+            catch (e) { alert(authErrorMsg(e) + '\n[' + (e.code || e.name || '') + ']'); }
+        }
+
+        window.registerUser = async function() {
+            const email = document.getElementById('reg-email-input').value.trim();
+            const name = document.getElementById('reg-username-input').value.trim();
+            const pw = document.getElementById('reg-password-input').value;
+            if (!email || !name || !pw) { alert('กรุณากรอกข้อมูลให้ครบถ้วน'); return; }
+            regPromise = (async () => {
+                const cred = await createUserWithEmailAndPassword(auth, email, pw);
+                await updateProfile(cred.user, { displayName: name });
+                await ensureUserDoc(cred.user, name);
+            })();
+            try {
+                await regPromise;
+                alert('สมัครสมาชิกสำเร็จ! (คะแนนเริ่มต้น 0 แต้ม)');
+            } catch (e) {
+                alert('สมัครสมาชิกไม่สำเร็จ: ' + authErrorMsg(e));
+            } finally { regPromise = null; }
+        }
+
+        window.logoutUser = async function() {
+            document.getElementById('login-password-input').value = "";
+            await signOut(auth);
+        }
+
+        function showLoginSection() {
+            document.getElementById('login-section').style.display = 'flex';
+            document.getElementById('app-section').style.display = 'none';
+        }
+
+        function showAppSection() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('app-section').style.display = 'flex';
+            document.getElementById('user-display').innerText = `ผู้ใช้งาน: ${currentUsername}`;
+            loadUserData();
+        }
+
+        window.loadUserData = async function() {
+            try {
+                const u = auth.currentUser;
+                if (!u) return;
+                const snap = await getDoc(doc(db, "users", u.uid));
+                if (!snap.exists()) { alert('ไม่พบข้อมูลผู้ใช้งานนี้ในระบบฐานข้อมูล'); logoutUser(); return; }
+                const data = snap.data();
+                currentUserIdDoc = u.uid;
+                currentUsername = data.username || currentUsername;
+                userNumericId = data.userId || "";
+                userPoints = Number(data.points) || 0;
+                userPurchasedBooks = data.purchasedBooks && typeof data.purchasedBooks === 'object' ? data.purchasedBooks : {};
+                userProgress = data.progress && typeof data.progress === 'object' ? data.progress : {};
+                try {
+                    const cr = await getDocs(query(collection(db, "cancel_requests"), where("uid", "==", u.uid)));
+                    cancelReqIds = new Set(cr.docs.map(d => d.data().bookId));
+                } catch (e) { cancelReqIds = new Set(); }
+
+                document.getElementById('user-points-display').innerText = userPoints;
+                document.getElementById('user-display').innerText = `ID: ${userNumericId} | ${currentUsername}`;
+                renderMyShelf();
+                loadShopBooks();
+            } catch (error) {
+                console.error("Error loading user data:", error);
+                alert('โหลดข้อมูลไม่สำเร็จ: ' + error.message);
+            }
+        }
+
+        window.openTopupModal = function() {
+            document.getElementById('topup-modal').style.display = 'flex';
+        }
+        window.closeTopupModal = function() {
+            document.getElementById('topup-modal').style.display = 'none';
+        }
+        window.previewSlip = function(input) {
+            const img = document.getElementById('topup-slip-preview');
+            const f = input.files[0];
+            if (!f) { img.classList.add('hidden'); return; }
+            img.src = URL.createObjectURL(f);
+            img.classList.remove('hidden');
+        }
+
+        // ย่อรูปสลิปและบีบอัดเป็น JPEG ก่อนเก็บใน Firestore (ไม่ต้องใช้ Storage)
+        function compressImage(file, maxSide = 1400) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    const k = Math.min(1, maxSide / Math.max(img.width, img.height));
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.width * k);
+                    c.height = Math.round(img.height * k);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    let q = 0.75, data = c.toDataURL('image/jpeg', q);
+                    while (data.length > 600000 && q > 0.3) { q -= 0.1; data = c.toDataURL('image/jpeg', q); }
+                    if (data.length > 800000) reject(new Error('รูปใหญ่เกินไป กรุณาครอปให้เห็นเฉพาะสลิป'));
+                    else resolve(data);
+                };
+                img.onerror = () => reject(new Error('อ่านไฟล์รูปไม่ได้ กรุณาใช้ไฟล์ JPG หรือ PNG'));
+                img.src = url;
+            });
+        }
+
+        window.submitTopupRequest = async function() {
+            const amount = document.getElementById('topup-amount-input').value.trim();
+            const note = document.getElementById('topup-note-input').value.trim();
+            const file = document.getElementById('topup-slip-input').files[0];
+
+            if (!amount || isNaN(amount) || amount <= 0) { alert('กรุณากรอกจำนวนเงินให้ถูกต้อง'); return; }
+            if (!file) { alert('กรุณาแนบรูปสลิปการโอน'); return; }
+
+            const btn = document.getElementById('topup-submit-btn');
+            btn.disabled = true;
+            try {
+                const slip = await compressImage(file);
+                const reqRef = doc(collection(db, "topup_requests"));
+                const batch = writeBatch(db);
+                batch.set(doc(db, "topup_slips", reqRef.id), { uid: currentUserIdDoc, slip: slip });
+                batch.set(reqRef, {
+                    uid: currentUserIdDoc,
+                    username: currentUsername,
+                    userId: userNumericId,
+                    amount: Number(amount),
+                    note: note || '-',
+                    hasSlip: true,
+                    status: 'pending',
+                    timestamp: Date.now()
+                });
+                await batch.commit();
+                alert('ส่งคำขอเติมแต้มสำเร็จ! กรุณารอแอดมินตรวจสอบและอนุมัติแต้มเข้าบัญชี');
+                document.getElementById('topup-amount-input').value = '';
+                document.getElementById('topup-note-input').value = '';
+                document.getElementById('topup-slip-input').value = '';
+                document.getElementById('topup-slip-preview').classList.add('hidden');
+                closeTopupModal();
+            } catch (error) {
+                console.error("Topup error:", error);
+                alert('เกิดข้อผิดพลาดในการส่งคำขอ: ' + error.message);
+            } finally { btn.disabled = false; }
+        }
+
+        // หาข้อมูลหนังสือจากกุญแจ (ชื่อ Folder) เพื่อแสดงชื่อเรื่องและปก
+        function bookInfoByKey(key) { return allShopBooks.find(b => b.name === key) || null; }
+        function titleFor(key) { const b = bookInfoByKey(key); return b ? b.title : key; }
+        function coverFor(key) {
+            const b = bookInfoByKey(key);
+            return (b && b.cover) ? b.cover : `${PDF_BASE}${encodeURIComponent(key.trim())}/page_1.jpg`;
+        }
+
+        // ปุ่มบนการ์ดคิวจอง: ส่งคำขอยกเลิกให้แอดมิน (แอดมินเป็นผู้ยกเลิกและคืนแต้มให้)
+        function cancelReqUI(bookName) {
+            const info = bookInfoByKey(bookName);
+            if (!info) return '';
+            return cancelReqIds.has(info.id)
+                ? `<span class="text-[9px] text-amber-600 block mt-1">ส่งคำขอยกเลิกแล้ว รอแอดมินดำเนินการ</span>`
+                : `<button data-key="${escHtml(bookName)}" onclick="requestCancelQueue(this.dataset.key)" class="mt-1 bg-red-500 hover:bg-red-600 text-white text-[10px] px-2 py-1 rounded font-semibold">ขอยกเลิกคิว</button>`;
+        }
+
+        window.requestCancelQueue = async function(bookName) {
+            const info = bookInfoByKey(bookName);
+            if (!info) { alert('ไม่พบข้อมูลหนังสือเล่มนี้'); return; }
+            if (!confirm(`ส่งคำขอยกเลิกคิวจอง "${info.title}" ให้แอดมินใช่หรือไม่?\nเมื่อแอดมินอนุมัติ ระบบจะคืนแต้มให้ในบัญชีของคุณ`)) return;
+            try {
+                await setDoc(doc(db, "cancel_requests", currentUserIdDoc + '_' + info.id), {
+                    uid: currentUserIdDoc, username: currentUsername, userId: userNumericId,
+                    bookId: info.id, bookKey: bookName, title: info.title, timestamp: Date.now()
+                });
+                cancelReqIds.add(info.id);
+                renderMyShelf();
+                alert('ส่งคำขอยกเลิกคิวแล้ว กรุณารอแอดมินดำเนินการ');
+            } catch (e) {
+                console.error(e);
+                alert('ส่งคำขอไม่สำเร็จ อาจเพราะเคยส่งไว้แล้วและยังรอแอดมินอยู่\n(' + e.message + ')');
+            }
+        }
+
+        function escHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        window.openTopupHistory = async function() {
+            const box = document.getElementById('topup-history-list');
+            box.innerHTML = '<p class="text-gray-500">กำลังโหลด...</p>';
+            document.getElementById('topup-history-modal').style.display = 'flex';
+            try {
+                const snap = await getDocs(query(collection(db, "topup_requests"), where("uid", "==", currentUserIdDoc)));
+                const rows = snap.docs.map(d => d.data()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                if (rows.length === 0) { box.innerHTML = '<p class="text-gray-500">ยังไม่มีประวัติการขอเติมแต้ม</p>'; return; }
+                const badge = (r) => r.status === 'approved'
+                    ? `<span class="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-semibold">อนุมัติแล้ว +${Number(r.approvedPoints ?? r.amount)} แต้ม</span>`
+                    : r.status === 'rejected'
+                    ? '<span class="text-[11px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-semibold">ไม่อนุมัติ</span>'
+                    : '<span class="text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-semibold">รอตรวจสอบ</span>';
+                box.innerHTML = rows.map(r => `
+                    <div class="border rounded-lg p-3 flex justify-between items-start gap-3">
+                        <div>
+                            <div class="font-semibold text-gray-800">โอน ${Number(r.amount)} บาท</div>
+                            <div class="text-xs text-gray-500">${r.timestamp ? formatThaiDateTime(r.timestamp) : '-'}</div>
+                            <div class="text-xs text-gray-400">${escHtml(r.note)}</div>
+                        </div>
+                        ${badge(r)}
+                    </div>`).join('');
+            } catch (e) {
+                console.error(e);
+                box.innerHTML = '<p class="text-red-500">โหลดประวัติไม่สำเร็จ: ' + escHtml(e.message) + '</p>';
+            }
+        }
+        window.closeTopupHistory = function() {
+            document.getElementById('topup-history-modal').style.display = 'none';
+        }
+
+        function getTimeRemaining(endtime) {
+            const total = endtime - Date.now();
+            if (total <= 0) return null;
+            const seconds = Math.floor((total / 1000) % 60);
+            const minutes = Math.floor((total / 1000 / 60) % 60);
+            const hours = Math.floor((total / (1000 * 60 * 60)) % 24);
+            const days = Math.floor(total / (1000 * 60 * 60 * 24));
+            return { total, days, hours, minutes };
+        }
+
+        function formatThaiDateTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.';
+        }
+
+        let readyTimer = null;
+        function showNote(msg) {
+            const t = document.createElement('div');
+            t.textContent = msg;
+            t.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl text-white text-sm shadow-lg bg-emerald-600';
+            document.body.appendChild(t); setTimeout(() => t.remove(), 6000);
+            if (window.Notification && Notification.permission === 'granted') new Notification('RentNovel', { body: msg });
+        }
+        function checkQueueReady() {
+            const RENT = 3 * 24 * 60 * 60 * 1000, now = Date.now(), seenKey = 'seenReady_' + currentUserIdDoc;
+            let seen = {}; try { seen = JSON.parse(localStorage.getItem(seenKey) || '{}'); } catch (e) {}
+            let next = Infinity;
+            for (const [k, v] of Object.entries(userPurchasedBooks)) {
+                const exp = Number(v) || 0, st = exp - RENT, id = k + '_' + exp;
+                if (st > now) next = Math.min(next, st);
+                else if (exp > now && !seen[id]) {
+                    seen[id] = 1;
+                    if (exp - now < RENT - 60000) showNote(`📖 ถึงคิวอ่านแล้ว: ${titleFor(k)}`);
+                }
+            }
+            localStorage.setItem(seenKey, JSON.stringify(seen));
+            clearTimeout(readyTimer);
+            if (next - now < 2147000000) readyTimer = setTimeout(() => { renderMyShelf(); checkQueueReady(); }, next - now + 1000);
+        }
+
+        function renderMyShelf() {
+            const shelfContainer = document.getElementById('my-shelf-container');
+            shelfContainer.innerHTML = '';
+
+            const bookKeys = Object.keys(userPurchasedBooks);
+            if (bookKeys.length === 0) {
+                shelfContainer.innerHTML = `<p class="text-gray-500 text-sm col-span-full">คุณยังไม่มีหนังสือในชั้นหนังสือ ลองเลือกเช่าหนังสือนิยายจากด้านล่างได้เลยครับ</p>`;
+                return;
+            }
+
+            bookKeys.forEach((bookName) => {
+                const expireTime = Number(userPurchasedBooks[bookName]) || 0;
+                const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+                const startTime = expireTime - threeDaysMs;
+                const now = Date.now();
+                
+                const cleanBookName = bookName.trim();
+                const coverPath = coverFor(cleanBookName);
+                const formattedStartTime = formatThaiDateTime(startTime);
+                const formattedExpireTime = formatThaiDateTime(expireTime);
+
+                let statusBadge = "";
+                let isReadable = false;
+
+                if (now < startTime) {
+                    const waitRem = getTimeRemaining(startTime);
+                    statusBadge = `
+                        <div class="mt-1 text-center space-y-0.5">
+                            <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold block">⏳ จองคิวรออ่าน</span>
+                            <span class="text-[9px] text-gray-500 block">เริ่มอ่านได้ใน: ${waitRem ? waitRem.days : 0}วัน ${waitRem ? waitRem.hours : 0}ชม.</span>
+                            <span class="text-[9px] text-indigo-600 font-semibold block">📅 พร้อมอ่าน: ${formattedStartTime}</span>
+                            ${cancelReqUI(bookName)}
+                        </div>
+                    `;
+                } else if (now >= startTime && now <= expireTime) {
+                    isReadable = true;
+                    const expireRem = getTimeRemaining(expireTime);
+                    statusBadge = `
+                        <div class="mt-1 text-center space-y-0.5">
+                            <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold block">📖 กำลังเปิดให้อ่าน</span>
+                            <span class="text-[9px] text-orange-600 block">เหลือเวลา: ${expireRem ? expireRem.days : 0}วัน ${expireRem ? expireRem.hours : 0}ชม.</span>
+                            <span class="text-[9px] text-red-500 font-semibold block">⏰ หมดเขต: ${formattedExpireTime}</span>
+                        </div>
+                    `;
+                } else {
+                    statusBadge = `<div class="mt-1 text-center"><span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold block">⏰ หมดอายุการอ่าน</span></div>`;
+                }
+
+                shelfContainer.innerHTML += `
+                    <div class="flex flex-col items-center group">
+                        <div class="w-28 h-40 rounded shadow-md overflow-hidden relative bg-gray-100 border border-gray-200 ${!isReadable ? 'opacity-60 grayscale' : 'cursor-pointer'}" ${isReadable ? `onclick="openReader('${bookName}')"` : ''}>
+                            <img src="${coverPath}" alt="${escHtml(titleFor(bookName))}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src=NO_COVER;">
+                            ${isReadable ? `<div class="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><span class="bg-indigo-600 text-white text-[10px] px-2 py-1 rounded font-semibold shadow">📖 คลิกเพื่ออ่าน</span></div>` : ''}
+                        </div>
+                        <p class="text-xs font-semibold text-gray-800 mt-2 text-center line-clamp-1 w-full" title="${escHtml(titleFor(bookName))}">${escHtml(titleFor(bookName))}</p>
+                        ${statusBadge}
+                    </div>
+                `;
+            });
+        }
+
+        async function loadShopBooks() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "books"));
+                allShopBooks = [];
+                queueMap = {};
+                const qSnap = await getDocs(collection(db, "bookQueues"));
+                qSnap.forEach(d => { queueMap[d.id] = Number(d.data().lastExpire) || 0; });
+
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    let bookName = data.folderName || data.title || data.name || docSnap.id;
+                    if (bookName.includes('\\')) bookName = bookName.split('\\').pop();
+                    if (bookName.includes('/')) bookName = bookName.split('/').pop();
+
+                    allShopBooks.push({
+                        id: docSnap.id,
+                        name: bookName,
+                        title: data.title || data.name || bookName,
+                        cover: data.cover || '',
+                        category: data.category || '',
+                        synopsis: data.synopsis || '',
+                        points: Number(data.readPoints ?? data.points ?? 30)
+                    });
+                });
+
+                allShopBooks.sort((a, b) => a.title.localeCompare(b.title, 'th'));
+                fillCategories();
+                document.getElementById('total-books-count').innerText = `ทั้งหมด ${allShopBooks.length} เรื่อง`;
+                renderShopBooksPage(1);
+                renderMyShelf();
+                checkQueueReady();
+            } catch (error) {
+                document.getElementById('shop-books-container').innerHTML = `<p class="text-red-500 text-sm col-span-full">เกิดข้อผิดพลาดในการโหลดหนังสือ</p>`;
+            }
+        }
+
+        window.renderShopBooksPage = function(page) {
+            shopCurrentPage = page;
+            const container = document.getElementById('shop-books-container');
+            container.innerHTML = '';
+
+            if (allShopBooks.length === 0) {
+                container.innerHTML = `<p class="text-gray-500 text-sm col-span-full">ยังไม่มีหนังสือนิยายในระบบ</p>`;
+                document.getElementById('pagination-container').innerHTML = '';
+                return;
+            }
+
+            const startIndex = (page - 1) * itemsPerPage;
+            const shopList = getShopList();
+            const favs = getFavs();
+            const paginatedItems = shopList.slice(startIndex, startIndex + itemsPerPage);
+            if (paginatedItems.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm col-span-full">ไม่พบหนังสือที่ตรงกับเงื่อนไข</p>';
+                renderPaginationControls();
+                return;
+            }
+
+            paginatedItems.forEach((book) => {
+                const cleanBookName = book.name.trim();
+                const coverPath = coverFor(cleanBookName);
+                let latestExpireTime = Date.now();
+                let hasActiveOrQueuedRenter = false;
+
+                const qe = queueMap[book.id] || 0;
+                if (qe > Date.now()) { hasActiveOrQueuedRenter = true; latestExpireTime = qe; }
+
+                const myExpire = Number(userPurchasedBooks[book.name]) || 0;
+                const isAlreadyInMyShelf = myExpire > Date.now();
+
+                let actionButton = '';
+                if (isAlreadyInMyShelf) {
+                    actionButton = `<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded font-semibold mt-1">อยู่ในชั้น/คิวของคุณแล้ว</span>`;
+                } else if (hasActiveOrQueuedRenter) {
+                    const rem = getTimeRemaining(latestExpireTime);
+                    const remStr = rem ? `${rem.days}วัน ${rem.hours}ชม.` : `เร็วๆ นี้`;
+                    actionButton = `
+                        <div class="mt-1 text-center flex flex-col items-center">
+                            <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">มีคิวจองอยู่</span>
+                            <span class="text-[9px] text-gray-500 mt-0.5">ได้คิวอ่านในอีก: ${remStr}</span>
+                            <button onclick="buyBookWithPoints('${book.id}', ${book.points}, ${latestExpireTime})" class="mt-1 bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-[4px] text-[10px] font-semibold transition shadow">จองคิวเช่าต่อ (${book.points} แต้ม)</button>
+                        </div>
+                    `;
+                } else {
+                    actionButton = `<button onclick="buyBookWithPoints('${book.id}', ${book.points}, null)" class="mt-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-[4px] text-[10px] font-semibold transition shadow">เช่า 3 วัน (${book.points} แต้ม)</button>`;
+                }
+
+                container.innerHTML += `
+                    <div class="flex flex-col items-center group">
+                        <div class="w-28 h-40 rounded shadow-md overflow-hidden relative bg-gray-100 border border-gray-200 cursor-pointer" onclick="openBookInfo('${book.id}')">
+                            <img src="${coverPath}" alt="${escHtml(book.title)}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src=NO_COVER;">
+                            <div class="absolute top-1 right-1 bg-black bg-opacity-60 text-white text-[9px] px-1.5 py-0.5 rounded">${book.points} แต้ม</div>
+                            <button onclick="event.stopPropagation();toggleFav('${book.id}')" title="รายการโปรด" class="absolute top-1 left-1 text-base leading-none drop-shadow">${favs.includes(book.id) ? '❤️' : '🤍'}</button>
+                        </div>
+                        <p class="text-xs font-semibold text-gray-800 mt-2 text-center line-clamp-1 w-full" title="${escHtml(book.title)}">${escHtml(book.title)}</p>
+                        ${actionButton}
+                    </div>
+                `;
+            });
+            renderPaginationControls();
+        }
+
+        function renderPaginationControls() {
+            const totalPagesCount = Math.ceil(getShopList().length / itemsPerPage);
+            const container = document.getElementById('pagination-container');
+            container.innerHTML = '';
+            if (totalPagesCount <= 1) return;
+
+            container.innerHTML += `<button onclick="renderShopBooksPage(${shopCurrentPage - 1})" ${shopCurrentPage === 1 ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm transition"'}>ก่อนหน้า</button>`;
+            for (let i = 1; i <= totalPagesCount; i++) {
+                const activeClass = i === shopCurrentPage ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+                container.innerHTML += `<button onclick="renderShopBooksPage(${i})" class="px-3 py-1 rounded text-sm font-medium ${activeClass} transition">${i}</button>`;
+            }
+            container.innerHTML += `<button onclick="renderShopBooksPage(${shopCurrentPage + 1})" ${shopCurrentPage === totalPagesCount ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm transition"'}>ถัดไป</button>`;
+        }
+
+        window.buyBookWithPoints = async function(bookId, _price, currentLatestExpire) {
+            const book = allShopBooks.find(b => b.id === bookId);
+            if (!book) return;
+            const bookName = book.name, bookPoints = book.points;
+            if (userPoints < bookPoints) {
+                alert(`คะแนนของคุณไม่เพียงพอ! ต้องการ ${bookPoints} แต้ม แต่คุณมี ${userPoints} แต้ม`);
+                return;
+            }
+            let confirmMsg = `คุณต้องการใช้ ${bookPoints} แต้ม เพื่อเช่าหนังสือ "${book.title}" ใช่หรือไม่?`;
+            if (currentLatestExpire && currentLatestExpire > Date.now()) {
+                confirmMsg = `หนังสือเรื่องนี้มีคิวเช่าอยู่ ระบบจะจองคิวต่อท้ายคิวล่าสุด และปลดล็อกให้อัตโนมัติเมื่อถึงคิว (ได้สิทธิ์อ่าน 3 วันเต็ม) ยืนยันการใช้ ${bookPoints} แต้มหรือไม่?`;
+            }
+            if (!confirm(confirmMsg)) return;
+            try {
+                const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+                const userRef = doc(db, "users", currentUserIdDoc);
+                const qRef = doc(db, "bookQueues", bookId);
+                await runTransaction(db, async (tx) => {
+                    const us = await tx.get(userRef);
+                    const qs = await tx.get(qRef);
+                    const d = us.data();
+                    const pts = Number(d.points) || 0;
+                    if (pts < bookPoints) throw new Error('แต้มไม่เพียงพอ');
+                    const pb = { ...(d.purchasedBooks || {}) };
+                    if (Number(pb[bookName]) > Date.now()) throw new Error('หนังสือเล่มนี้อยู่ในชั้น/คิวของคุณแล้ว');
+                    const latest = qs.exists() ? Number(qs.data().lastExpire) || 0 : 0;
+                    const base = Math.max(Date.now(), latest);
+                    pb[bookName] = base + threeDaysMs;
+                    tx.update(userRef, { points: pts - bookPoints, purchasedBooks: pb });
+                    tx.set(qRef, { lastExpire: base + threeDaysMs });
+                });
+                alert(`จองคิวเช่าหนังสือสำเร็จ! เพิ่ม "${book.title}" ลงในชั้นหนังสือของคุณแล้ว`);
+                loadUserData();
+            } catch (error) {
+                alert('เกิดข้อผิดพลาดในการเช่าหนังสือ: ' + error.message);
+            }
+        }
+
+        // ================= ฟังก์ชันระบบอ่าน PDF =================
+        window.openReader = async function(bookName) {
+            const expireTime = Number(userPurchasedBooks[bookName]) || 0;
+            const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+            const startTime = expireTime - threeDaysMs;
+
+            if (Date.now() < startTime) {
+                alert('ยังไม่ถึงคิวอ่านของคุณ กรุณารอจนกว่าจะถึงเวลาเปิดให้อ่านครับ');
+                return;
+            }
+            if (Date.now() > expireTime) {
+                alert('สิทธิ์การอ่านหนังสือเล่มนี้หมดอายุแล้วครับ');
+                return;
+            }
+
+            currentBookFolder = bookName;
+            zoomLocked = localStorage.getItem('readerZoomLock') === '1';
+            currentScale = savedZoom() / 100;
+            document.getElementById('zoom-slider').value = savedZoom();
+            applyZoomLockUI();
+            lastSavedPage = 0;
+            document.getElementById('main-member-view').style.display = 'none';
+            document.getElementById('reader-view').style.display = 'flex';
+            document.getElementById('reader-book-title').innerText = titleFor(bookName);
+            document.getElementById('page-indicator').innerText = 'กำลังโหลดไฟล์ PDF...';
+
+            const cleanBookName = bookName.trim();
+            const pdfUrl = `${PDF_BASE}${encodeURIComponent(cleanBookName)}/${encodeURIComponent(cleanBookName)}.pdf`;
+
+            try {
+                // ลองหลายชื่อไฟล์: book.pdf ก่อน แล้วค่อย [ชื่อ folder].pdf
+                const enc = encodeURIComponent(cleanBookName);
+                const candidates = [`${PDF_BASE}${enc}/book.pdf`, pdfUrl];
+                const errs = []; pdfDoc = null;
+                for (const url of candidates) {
+                    try { pdfDoc = await pdfjsLib.getDocument(url).promise; break; }
+                    catch (e) { errs.push(decodeURIComponent(url) + '\n   → ' + e.message); console.error('โหลดไม่สำเร็จ:', url, e); }
+                }
+                if (!pdfDoc) throw new Error('ลองแล้วทุกชื่อไม่สำเร็จ:\n' + errs.join('\n'));
+                totalPages = pdfDoc.numPages;
+
+                let savedPage = userProgress[bookName] ? parseInt(userProgress[bookName]) : 1;
+                if (isNaN(savedPage) || savedPage < 1) savedPage = 1;
+                if (savedPage > totalPages) savedPage = totalPages;
+
+                currentPage = savedPage;
+                renderPDFPage(currentPage);
+            } catch (error) {
+                console.error("Error loading PDF:", error);
+                alert('ไม่สามารถโหลดไฟล์ PDF ของหนังสือเล่มนี้ได้: ' + error.message);
+                backToMainView();
+            }
+        }
+
+        // ลายน้ำ: วาดลงพิกเซลของ canvas โดยตรง (ลบด้วย DevTools ไม่ได้) ระบุตัวผู้เช่าและเวลาที่เปิดอ่าน
+        const bmKey = () => 'bm_' + currentUserIdDoc + '_' + currentBookFolder;
+        function getBms() { try { return JSON.parse(localStorage.getItem(bmKey()) || '[]'); } catch (e) { return []; } }
+        function renderBookmarkUI() {
+            const bms = getBms().sort((a, b) => a - b), sel = document.getElementById('bm-select');
+            document.getElementById('bm-btn').innerText = bms.includes(currentPage) ? '✅ คั่นหน้าแล้ว (กดเพื่อเอาออก)' : '🔖 คั่นหน้านี้';
+            sel.classList.toggle('hidden', bms.length === 0);
+            sel.innerHTML = `<option value="">📑 ที่คั่นหน้า (${bms.length})</option>` + bms.map(p => `<option value="${p}">หน้า ${p}</option>`).join('');
+        }
+        window.toggleBookmark = function() {
+            const bms = getBms(), i = bms.indexOf(currentPage);
+            if (i >= 0) bms.splice(i, 1); else bms.push(currentPage);
+            localStorage.setItem(bmKey(), JSON.stringify(bms));
+            renderBookmarkUI();
+        }
+        window.jumpToBookmark = function(v) {
+            if (!v) return;
+            document.getElementById('jump-input').value = v;
+            jumpToPage();
+        }
+
+        function drawWatermark(canvas) {
+            const ctx = canvas.getContext('2d');
+            const u = auth.currentUser;
+            const when = new Date().toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' });
+            const label = `ID ${userNumericId} · ${u ? u.email : currentUsername} · ${when}`;
+            const fs = Math.max(14, Math.round(canvas.width / 38));
+            ctx.save();
+            ctx.font = `600 ${fs}px Sarabun, sans-serif`;
+            ctx.fillStyle = 'rgba(110,110,110,0.18)';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(-Math.PI / 6);
+            const stepX = ctx.measureText(label).width + fs * 3, stepY = fs * 5;
+            const R = Math.hypot(canvas.width, canvas.height) / 2;
+            for (let y = -R, r = 0; y <= R; y += stepY, r++)
+                for (let x = -R + (r % 2 ? stepX / 2 : 0); x <= R; x += stepX) ctx.fillText(label, x, y);
+            ctx.restore();
+        }
+
+        function renderPDFPage(num) {
+            pdfDoc.getPage(num).then(function(page) {
+                const canvas = document.getElementById('pdf-canvas');
+                const ctx = canvas.getContext('2d');
+                const box = document.getElementById('container-box');
+
+                // ขนาดที่แสดง: กว้างพอดีกรอบ (หัก padding) แล้วคูณด้วยค่าซูม
+                const availW = Math.max(200, box.clientWidth - 32);
+                const base = page.getViewport({ scale: 1 });
+                const cssScale = (availW / base.width) * currentScale;
+                const cssW = base.width * cssScale, cssH = base.height * cssScale;
+
+                // วาดด้วยความละเอียดตามหน้าจอ (คมชัด) แต่จำกัดจำนวนพิกเซลไม่ให้เปลืองหน่วยความจำ
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                const k = Math.min(1, Math.sqrt(16e6 / (cssW * dpr * cssH * dpr)));
+                const viewport = page.getViewport({ scale: cssScale * dpr * k });
+                canvas.width = Math.floor(viewport.width);
+                canvas.height = Math.floor(viewport.height);
+                canvas.style.width = Math.floor(cssW) + 'px';
+                canvas.style.height = Math.floor(cssH) + 'px';
+
+                if (renderTask) { try { renderTask.cancel(); } catch (e) {} }
+                renderTask = page.render({ canvasContext: ctx, viewport: viewport });
+                renderTask.promise.then(function() {
+                    drawWatermark(canvas);
+                    document.getElementById('page-indicator').innerText = `หน้า ${currentPage} / ${totalPages}`;
+                    document.getElementById('jump-input').value = currentPage;
+                    document.getElementById('jump-input').max = totalPages;
+                    document.getElementById('prev-btn').disabled = currentPage <= 1;
+                    document.getElementById('next-btn').disabled = currentPage >= totalPages;
+                    updateZoomPercentText();
+                    restoreScrollX();
+                    renderBookmarkUI();
+                    if (pendingBottom) {
+                        pendingBottom = false;
+                        const cb = document.getElementById('container-box');
+                        if (cb) cb.scrollTop = cb.scrollHeight;
+                    }
+                    if (lastSavedPage !== currentPage) { lastSavedPage = currentPage; saveUserProgress(); }
+                }).catch(function(e) {
+                    if (!e || e.name !== 'RenderingCancelledException') console.error(e);
+                });
+            });
+        }
+
+        // จำตำแหน่งการเลื่อนแนวนอน (เป็นสัดส่วน) เพื่อให้เปลี่ยนหน้า/เปิดเล่มอื่นแล้วการจัดวางยังเหมือนเดิม
+        function restoreScrollX() {
+            const box = document.getElementById('container-box');
+            const r = parseFloat(localStorage.getItem('readerScrollX'));
+            const max = box.scrollWidth - box.clientWidth;
+            if (max > 0 && r >= 0 && r <= 1) box.scrollLeft = max * r;
+        }
+        let scrollTimer = null;
+        document.getElementById('container-box').addEventListener('scroll', function() {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(() => {
+                const max = this.scrollWidth - this.clientWidth;
+                if (max > 0) localStorage.setItem('readerScrollX', (this.scrollLeft / max).toFixed(3));
+            }, 150);
+        });
+
+        // ปรับขนาดใหม่ตามหน้าต่าง (หมุนจอ/ย่อขยายหน้าต่าง)
+        let resizeTimer = null;
+        window.addEventListener('resize', function() {
+            if (!pdfDoc || document.getElementById('reader-view').style.display !== 'flex') return;
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => renderPDFPage(currentPage), 200);
+        });
+
+        window.backToMainView = function() {
+            document.getElementById('reader-view').style.display = 'none';
+            document.getElementById('main-member-view').style.display = 'block';
+            loadUserData();
+        }
+
+        async function saveUserProgress() {
+            if (!currentUserIdDoc || !currentBookFolder) return;
+            try {
+                userProgress[currentBookFolder] = currentPage;
+                const userRef = doc(db, "users", currentUserIdDoc);
+                await updateDoc(userRef, { progress: userProgress });
+            } catch (error) {
+                console.error("Error saving reading progress:", error);
+            }
+        }
+
+        window.nextPage = function() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderPDFPage(currentPage);
+                window.scrollTo(0, 0);
+                const containerBox = document.getElementById('container-box');
+                if (containerBox) containerBox.scrollTop = 0;
+            }
+        }
+
+        window.prevPage = function(toBottom) {
+            if (currentPage > 1) {
+                currentPage--;
+                if (toBottom === true) pendingBottom = true;
+                renderPDFPage(currentPage);
+                window.scrollTo(0, 0);
+                const containerBox = document.getElementById('container-box');
+                if (containerBox) containerBox.scrollTop = 0;
+            }
+        }
+
+        window.jumpToPage = function() {
+            const jumpInput = document.getElementById('jump-input');
+            let targetPage = parseInt(jumpInput.value);
+            if (isNaN(targetPage)) return;
+            if (targetPage < 1) targetPage = 1;
+            else if (targetPage > totalPages) targetPage = totalPages;
+
+            currentPage = targetPage;
+            renderPDFPage(currentPage);
+            window.scrollTo(0, 0);
+            const containerBox = document.getElementById('container-box');
+            if (containerBox) containerBox.scrollTop = 0;
+        }
+
+        // จำขนาดซูมไว้ในเครื่อง (ใช้กับทุกเล่ม) และมีโหมดล็อกกันเผลอปรับ
+        let zoomLocked = false;
+        const savedZoom = () => { const z = parseInt(localStorage.getItem('readerZoom')); return (z >= 50 && z <= 250) ? z : 100; };
+        function applyZoomLockUI() {
+            document.getElementById('zoom-slider').disabled = zoomLocked;
+            document.getElementById('zoom-reset-btn').disabled = zoomLocked;
+            const b = document.getElementById('zoom-lock-btn');
+            b.innerText = zoomLocked ? '🔒 ล็อกอยู่' : '🔓 ล็อก';
+            b.className = zoomLocked ? 'bg-amber-500 text-white px-2 py-1 rounded text-xs shadow transition'
+                                     : 'bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs shadow transition';
+        }
+        window.toggleZoomLock = function() {
+            zoomLocked = !zoomLocked;
+            localStorage.setItem('readerZoomLock', zoomLocked ? '1' : '0');
+            applyZoomLockUI();
+        }
+
+        window.onSliderZoom = function(val) {
+            if (zoomLocked) return;
+            currentScale = parseInt(val) / 100;
+            localStorage.setItem('readerZoom', parseInt(val));
+            renderPDFPage(currentPage);
+        }
+
+        window.resetZoom = function() {
+            if (zoomLocked) return;
+            localStorage.setItem('readerZoom', 100);
+            currentScale = 1;
+            document.getElementById('zoom-slider').value = 100;
+            renderPDFPage(currentPage);
+        }
+
+        function updateZoomPercentText() {
+            const percentText = document.getElementById('zoom-percent-text');
+            if (percentText) percentText.innerText = Math.round(currentScale * 100);
+        }
+
+        window.setTheme = function(themeName, save = true) {
+            const containerBox = document.getElementById('container-box');
+            if (!containerBox) return;
+
+            containerBox.classList.remove('theme-normal', 'theme-dark');
+            containerBox.classList.add(`theme-${themeName}`);
+
+            ['normal', 'dark'].forEach(t => {
+                const btn = document.getElementById(`btn-theme-${t}`);
+                if (btn) {
+                    if (t === themeName) {
+                        btn.className = "px-3 py-1 rounded text-xs font-semibold bg-white text-indigo-600 shadow-sm transition";
+                    } else {
+                        btn.className = "px-3 py-1 rounded text-xs font-semibold text-gray-600 hover:bg-gray-200 transition";
+                    }
+                }
+            });
+
+            if (save) localStorage.setItem("readerTheme", themeName);
+        }
+
+        // แป้นพิมพ์: ซ้าย/ขวา = เปลี่ยนหน้า | ขึ้น/ลง/PageUp/PageDown/Space = เลื่อนอ่านต่อเนื่อง
+        // เลื่อนถึงท้ายหน้าแล้วกดลงอีก = หน้าถัดไป, อยู่บนสุดแล้วกดขึ้นอีก = ท้ายหน้าก่อนหน้า
+        document.addEventListener('keydown', function(event) {
+            if (document.getElementById('reader-view').style.display !== 'flex') return;
+            const tag = event.target.tagName, type = event.target.type;
+            if (tag === 'INPUT' && type !== 'range') return;   // กำลังพิมพ์เลขหน้า
+            if (tag === 'INPUT') event.target.blur();          // สไลเดอร์ซูม: กันลูกศรไปขยับสไลเดอร์
+
+            const box = document.getElementById('container-box');
+            const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 2;
+            const atTop = box.scrollTop <= 1;
+            const key = event.key;
+
+            if (key === 'ArrowRight') {
+                window.nextPage();
+            } else if (key === 'ArrowLeft') {
+                window.prevPage();
+            } else if (key === 'ArrowDown' || key === 'PageDown' || (key === ' ' && !event.shiftKey)) {
+                event.preventDefault();
+                if (atBottom) { if (!event.repeat) window.nextPage(); }
+                else box.scrollBy({ top: key === 'ArrowDown' ? 120 : box.clientHeight * 0.9, behavior: 'smooth' });
+            } else if (key === 'ArrowUp' || key === 'PageUp' || (key === ' ' && event.shiftKey)) {
+                event.preventDefault();
+                if (atTop) { if (!event.repeat) window.prevPage(true); }
+                else box.scrollBy({ top: -(key === 'ArrowUp' ? 120 : box.clientHeight * 0.9), behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html>
