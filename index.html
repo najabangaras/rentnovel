@@ -316,9 +316,14 @@
 })();
 </script>
 <script type="module">
-// ที่อยู่โฟลเดอร์ PDF (ลิงก์ Cloudflare Tunnel ชี้ไปที่ output_books) ต้องลงท้ายด้วย /
-// ถ้าเปิดทดสอบในเครื่อง ให้ใช้ 'output_books/' แทน
-const PDF_BASE = 'https://math-squad-supplier-differ.trycloudflare.com/';
+// ที่อยู่โฟลเดอร์หนังสือที่เข้ารหัส (.enc) ต้องลงท้ายด้วย /
+// ค่าจริงอ่านจาก config.json ที่สคริปต์ rentnovel_host.py อัปเดตให้ทุกครั้งที่ tunnel เปลี่ยนลิงก์
+// ค่าด้านล่างเป็นแค่ค่าสำรองเมื่ออ่าน config.json ไม่ได้
+let PDF_BASE = 'https://math-squad-supplier-differ.trycloudflare.com/';
+const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
+    .then(r => (r.ok ? r.json() : null))
+    .then(j => { if (j && j.pdfBase) PDF_BASE = j.pdfBase.endsWith('/') ? j.pdfBase : j.pdfBase + '/'; })
+    .catch(() => {});
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, runTransaction, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -631,7 +636,7 @@ const PDF_BASE = 'https://math-squad-supplier-differ.trycloudflare.com/';
         function titleFor(key) { const b = bookInfoByKey(key); return b ? b.title : key; }
         function coverFor(key) {
             const b = bookInfoByKey(key);
-            return (b && b.cover) ? b.cover : `${PDF_BASE}${encodeURIComponent(key.trim())}/page_1.jpg`;
+            return (b && b.cover) ? b.cover : NO_COVER;
         }
 
         // ปุ่มบนการ์ดคิวจอง: ส่งคำขอยกเลิกให้แอดมิน (แอดมินเป็นผู้ยกเลิกและคืนแต้มให้)
@@ -951,6 +956,25 @@ const PDF_BASE = 'https://math-squad-supplier-differ.trycloudflare.com/';
         }
 
         // ================= ฟังก์ชันระบบอ่าน PDF =================
+        // ===== ถอดรหัสหนังสือ (AES-256-GCM, ไฟล์ = IV 12 ไบต์ + ciphertext + tag) =====
+        async function fetchBookKey(folder) {
+            try {
+                const snap = await getDoc(doc(db, 'bookKeys', folder));
+                return snap.exists() ? snap.data().key : null;
+            } catch (e) {
+                if (e.code === 'permission-denied') throw new Error('ยังไม่ถึงเวลาอ่าน หรือสิทธิ์อ่านหมดอายุแล้ว');
+                throw e;
+            }
+        }
+        async function decryptBook(buf, keyB64) {
+            if (!(window.crypto && crypto.subtle)) throw new Error('เบราว์เซอร์นี้ถอดรหัสไม่ได้ (ต้องเปิดผ่าน https)');
+            const raw = Uint8Array.from(atob(keyB64), c => c.charCodeAt(0));
+            const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+            const u8 = new Uint8Array(buf);
+            const out = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u8.slice(0, 12) }, key, u8.subarray(12));
+            return new Uint8Array(out);
+        }
+
         window.openReader = async function(bookName) {
             const expireTime = Number(userPurchasedBooks[bookName]) || 0;
             const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
@@ -977,18 +1001,32 @@ const PDF_BASE = 'https://math-squad-supplier-differ.trycloudflare.com/';
             document.getElementById('page-indicator').innerText = 'กำลังโหลดไฟล์ PDF...';
 
             const cleanBookName = bookName.trim();
-            const pdfUrl = `${PDF_BASE}${encodeURIComponent(cleanBookName)}/${encodeURIComponent(cleanBookName)}.pdf`;
+            const enc = encodeURIComponent(cleanBookName);
 
             try {
-                // ลองหลายชื่อไฟล์: book.pdf ก่อน แล้วค่อย [ชื่อ folder].pdf
-                const enc = encodeURIComponent(cleanBookName);
-                const candidates = [`${PDF_BASE}${enc}/book.pdf`, pdfUrl];
-                const errs = []; pdfDoc = null;
-                for (const url of candidates) {
-                    try { pdfDoc = await pdfjsLib.getDocument(url).promise; break; }
-                    catch (e) { errs.push(decodeURIComponent(url) + '\n   → ' + e.message); console.error('โหลดไม่สำเร็จ:', url, e); }
+                await pdfBaseReady;
+                pdfDoc = null;
+                // 1) ขอกุญแจ (Firestore rules ให้เฉพาะคนที่อยู่ในช่วงสิทธิ์อ่านจริง)
+                const keyB64 = await fetchBookKey(cleanBookName);
+                if (keyB64) {
+                    // 2) โหลดไฟล์ที่เข้ารหัส แล้วถอดรหัสในเครื่อง
+                    document.getElementById('page-indicator').innerText = 'กำลังดาวน์โหลดหนังสือ...';
+                    const resp = await fetch(`${PDF_BASE}${enc}/book.enc`);
+                    if (!resp.ok) throw new Error('ดาวน์โหลดไฟล์ไม่สำเร็จ (HTTP ' + resp.status + ') ลองใหม่ภายหลัง หรือแจ้งแอดมิน');
+                    const buf = await resp.arrayBuffer();
+                    document.getElementById('page-indicator').innerText = 'กำลังถอดรหัส...';
+                    const plain = await decryptBook(buf, keyB64);
+                    pdfDoc = await pdfjsLib.getDocument({ data: plain }).promise;
+                } else {
+                    // หนังสือเล่มที่ยังไม่ได้เข้ารหัส: โหลด PDF ตรง ๆ (ใช้ได้เมื่อเปิดทดสอบในเครื่อง)
+                    const candidates = [`${PDF_BASE}${enc}/book.pdf`, `${PDF_BASE}${enc}/${enc}.pdf`];
+                    const errs = [];
+                    for (const url of candidates) {
+                        try { pdfDoc = await pdfjsLib.getDocument(url).promise; break; }
+                        catch (e) { errs.push(decodeURIComponent(url) + '\n   → ' + e.message); console.error('โหลดไม่สำเร็จ:', url, e); }
+                    }
+                    if (!pdfDoc) throw new Error('หนังสือเล่มนี้ยังไม่พร้อมให้อ่าน (ไม่มีกุญแจ/ไฟล์) กรุณาแจ้งแอดมิน\n' + errs.join('\n'));
                 }
-                if (!pdfDoc) throw new Error('ลองแล้วทุกชื่อไม่สำเร็จ:\n' + errs.join('\n'));
                 totalPages = pdfDoc.numPages;
 
                 let savedPage = userProgress[bookName] ? parseInt(userProgress[bookName]) : 1;
