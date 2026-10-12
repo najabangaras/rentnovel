@@ -13,6 +13,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>try{if(localStorage.getItem('readerTheme')==='dark')document.documentElement.classList.add('app-dark');}catch(e){}</script>
     <style>
         body { 
             font-family: 'Sarabun', sans-serif; 
@@ -44,6 +45,57 @@
         .theme-dark #pdf-canvas {
             filter: invert(1) hue-rotate(180deg) brightness(0.95);
         }
+
+        .reader-container { overscroll-behavior: contain; }
+
+        /* ===== โหมดเต็มจอ ===== */
+        #reader-view.fs { position: fixed; inset: 0; z-index: 60; padding: 0 !important; max-width: none !important; width: 100% !important;
+                          height: 100vh; height: 100dvh; background: #f8fafc; justify-content: center; }
+        #reader-view.fs > * { margin: 0 !important; }
+        #reader-view.fs #container-box { max-width: none; width: 100%; height: 100vh !important; height: 100dvh !important; border-radius: 0; border: 0; }
+        #reader-view.fs #reader-top, #reader-view.fs #reader-bottom { display: none; position: fixed; left: 0; right: 0; z-index: 70; max-width: none !important; border-radius: 0; }
+        #reader-view.fs #reader-top { top: 0; }
+        #reader-view.fs #reader-bottom { bottom: 0; }
+        #reader-view.fs.show-ui #reader-top, #reader-view.fs.show-ui #reader-bottom { display: flex; }
+        #fs-chip { display: none; }
+        #reader-view.fs:not(.show-ui) #fs-chip { display: block; position: fixed; right: 10px; bottom: 6px; z-index: 65; pointer-events: none;
+                          font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.45); color: #fff; }
+        .tap-hint { cursor: grab; }
+
+        /* ===== ธีมมืดทั้งโปรแกรม (เปิดเมื่อเลือกโหมดมืด) ===== */
+        html.app-dark body { background: #0b0f19 !important; color: #e5e7eb; }
+        .app-dark .bg-white { background-color: #161b26 !important; }
+        .app-dark .bg-gray-50 { background-color: #0b0f19 !important; }
+        .app-dark .bg-gray-100 { background-color: #1f2633 !important; }
+        .app-dark .bg-gray-200 { background-color: #2a3342 !important; }
+        .app-dark .bg-gray-300 { background-color: #3a4558 !important; }
+        .app-dark .hover\:bg-gray-50:hover, .app-dark .hover\:bg-gray-200:hover, .app-dark .hover\:bg-gray-300:hover { background-color: #343f52 !important; }
+        .app-dark .text-gray-800 { color: #f3f4f6 !important; }
+        .app-dark .text-gray-700 { color: #e5e7eb !important; }
+        .app-dark .text-gray-600 { color: #cbd5e1 !important; }
+        .app-dark .text-gray-500 { color: #9ca3af !important; }
+        .app-dark .text-gray-400 { color: #8b95a5 !important; }
+        .app-dark .text-indigo-600, .app-dark .text-indigo-700, .app-dark .text-indigo-800 { color: #a5b4fc !important; }
+        .app-dark .hover\:text-indigo-800:hover { color: #c7d2fe !important; }
+        .app-dark .bg-indigo-50 { background-color: #1e2545 !important; }
+        .app-dark .bg-indigo-100 { background-color: #27305c !important; }
+        .app-dark .hover\:bg-indigo-50:hover, .app-dark .hover\:bg-indigo-200:hover { background-color: #323c70 !important; }
+        .app-dark .bg-amber-100 { background-color: #3b2f12 !important; }
+        .app-dark .text-amber-800, .app-dark .text-amber-700, .app-dark .text-amber-600 { color: #fcd34d !important; }
+        .app-dark .bg-red-100 { background-color: #3f1d1d !important; }
+        .app-dark .text-red-600, .app-dark .text-red-500 { color: #fca5a5 !important; }
+        .app-dark .bg-emerald-100 { background-color: #123a2c !important; }
+        .app-dark .text-emerald-800, .app-dark .text-emerald-700, .app-dark .text-emerald-600 { color: #6ee7b7 !important; }
+        .app-dark .text-orange-600 { color: #fdba74 !important; }
+        .app-dark nav.bg-indigo-600 { background-color: #1e1b4b !important; }
+        .app-dark .border-gray-200, .app-dark .border, .app-dark .border-b, .app-dark .border-t { border-color: #2d3748 !important; }
+        .app-dark input, .app-dark select, .app-dark textarea { background-color: #1f2633 !important; color: #e5e7eb !important; border-color: #3a4558 !important; }
+        .app-dark input::placeholder, .app-dark textarea::placeholder { color: #7b8596 !important; }
+        .app-dark .shadow-md, .app-dark .shadow-lg, .app-dark .shadow { --tw-shadow-color: rgba(0,0,0,.6); }
+        .app-dark #container-box { border-color: #2d3748 !important; }
+        .app-dark #reader-view.fs { background: #000; }
+        .app-dark ::-webkit-scrollbar { background: #0b0f19; }
+        .app-dark ::-webkit-scrollbar-thumb { background: #3a4558; border-radius: 6px; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col" oncontextmenu="return false;">
@@ -121,6 +173,7 @@
                 <h1 class="text-xl font-bold">📚 RentNovel</h1>
                 <div class="flex items-center space-x-4">
                     <span id="user-display" class="text-sm">กำลังโหลดข้อมูล...</span>
+                    <button onclick="toggleAppTheme()" id="app-theme-btn" title="สลับโหมดสว่าง/มืด" class="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-sm transition">🌙 โหมดมืด</button>
                     <button onclick="logoutUser()" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition shadow">ออกจากระบบ</button>
                 </div>
             </div>
@@ -189,7 +242,7 @@
             <!-- หน้าอ่านหนังสือ PDF -->
             <div id="reader-view" class="hidden flex-col items-center space-y-4 w-full max-w-full px-2">
                 <!-- แถบเครื่องมือด้านบน -->
-                <div class="w-full max-w-5xl flex justify-between items-center bg-white p-4 rounded-xl shadow-md flex-wrap gap-4">
+                <div id="reader-top" class="w-full max-w-5xl flex justify-between items-center bg-white p-4 rounded-xl shadow-md flex-wrap gap-4">
                     <button onclick="backToMainView()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
                         ⬅ กลับไปหน้าหลัก
                     </button>
@@ -202,6 +255,8 @@
                             <button onclick="setTheme('dark')" id="btn-theme-dark" title="โหมดกลางคืน" class="px-3 py-1 rounded text-xs font-semibold text-gray-600 hover:bg-gray-200 transition">🌙 มืด (พื้นดำ)</button>
                         </div>
 
+                        <button onclick="toggleFullscreen()" id="fs-btn" title="โหมดเต็มจอ (กด F)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition">⛶ เต็มจอ</button>
+
                         <!-- แถบเลื่อน Slider ปรับขนาด Scale % -->
                         <div class="flex items-center space-x-2 bg-gray-100 px-3 py-1.5 rounded-lg border">
                             <span class="text-xs font-semibold text-gray-700">🔍 <span id="zoom-percent-text">100</span>%</span>
@@ -213,12 +268,13 @@
                 </div>
 
                 <!-- พื้นที่แสดงผล Canvas PDF -->
-                <div class="reader-container theme-normal w-full max-w-5xl h-[78vh] p-4 rounded-xl relative shadow-inner border border-gray-200 flex flex-col items-start" id="container-box">
+                <div class="reader-container tap-hint theme-normal w-full max-w-5xl h-[78vh] p-4 rounded-xl relative shadow-inner border border-gray-200 flex flex-col items-start" id="container-box">
                     <canvas id="pdf-canvas" class="select-none my-auto"></canvas>
                 </div>
+                <div id="fs-chip"></div>
 
                 <!-- แถบควบคุมเปลี่ยนหน้าด้านล่าง -->
-                <div class="w-full max-w-5xl bg-white p-3 rounded-xl shadow-md flex flex-wrap justify-center items-center gap-4">
+                <div id="reader-bottom" class="w-full max-w-5xl bg-white p-3 rounded-xl shadow-md flex flex-wrap justify-center items-center gap-4">
                     <button id="prev-btn" onclick="prevPage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:bg-gray-400 transition">
                         ◀ หน้าก่อนหน้า
                     </button>
@@ -297,24 +353,6 @@
     </div>
 
     <!-- Firebase SDKs & Script -->
-    <!-- ===== ตัวช่วยดูข้อผิดพลาดบนหน้าจอ (ชั่วคราว: ลบก่อนเปิดให้ลูกค้าใช้จริง) ===== -->
-<script>
-(function () {
-    function show(msg) {
-        var d = document.getElementById('dbg-banner');
-        if (!d) {
-            d = document.createElement('div'); d.id = 'dbg-banner';
-            d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#b91c1c;color:#fff;font:12px/1.4 sans-serif;padding:6px 10px;max-height:30vh;overflow:auto';
-            d.onclick = function () { d.remove(); };
-            if (document.body) document.body.appendChild(d);
-            else document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(d); });
-        }
-        d.textContent = msg + '  (แตะเพื่อปิด)';
-    }
-    window.addEventListener('error', function (e) { show('JS error: ' + e.message + ' [' + String(e.filename || '').split('/').pop() + ':' + e.lineno + ']'); });
-    window.addEventListener('unhandledrejection', function (e) { var r = e.reason; show('Promise error: ' + ((r && (r.code || r.message)) || r)); });
-})();
-</script>
 <script type="module">
 // ที่อยู่โฟลเดอร์หนังสือที่เข้ารหัส (.enc) ต้องลงท้ายด้วย /
 // ค่าจริงอ่านจาก config.json ที่สคริปต์ rentnovel_host.py อัปเดตให้ทุกครั้งที่ tunnel เปลี่ยนลิงก์
@@ -1108,6 +1146,7 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
                 renderTask.promise.then(function() {
                     drawWatermark(canvas);
                     document.getElementById('page-indicator').innerText = `หน้า ${currentPage} / ${totalPages}`;
+                    document.getElementById('fs-chip').innerText = `${currentPage} / ${totalPages}`;
                     document.getElementById('jump-input').value = currentPage;
                     document.getElementById('jump-input').max = totalPages;
                     document.getElementById('prev-btn').disabled = currentPage <= 1;
@@ -1152,6 +1191,7 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
         });
 
         window.backToMainView = function() {
+            if (isFS()) exitFS();
             document.getElementById('reader-view').style.display = 'none';
             document.getElementById('main-member-view').style.display = 'block';
             loadUserData();
@@ -1258,8 +1298,120 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
                 }
             });
 
+            document.documentElement.classList.toggle('app-dark', themeName === 'dark');
+            const tb = document.getElementById('app-theme-btn');
+            if (tb) tb.innerText = themeName === 'dark' ? '☀️ โหมดสว่าง' : '🌙 โหมดมืด';
+
             if (save) localStorage.setItem("readerTheme", themeName);
         }
+        window.toggleAppTheme = function() {
+            window.setTheme(document.documentElement.classList.contains('app-dark') ? 'normal' : 'dark');
+        }
+
+
+        // ===== โหมดเต็มจอ =====
+        function isFS() { return document.getElementById('reader-view').classList.contains('fs'); }
+        function setFsUi(show) {
+            document.getElementById('reader-view').classList.toggle('show-ui', !!show);
+        }
+        function relayoutSoon() { setTimeout(() => { if (pdfDoc) renderPDFPage(currentPage); }, 150); }
+        window.toggleFullscreen = async function() {
+            if (isFS()) { exitFS(); return; }
+            document.getElementById('reader-view').classList.add('fs');
+            document.getElementById('fs-btn').innerText = '✕ ออกเต็มจอ';
+            setFsUi(false);
+            try {
+                const el = document.documentElement;
+                if (!document.fullscreenElement && el.requestFullscreen) await el.requestFullscreen({ navigationUI: 'hide' });
+            } catch (e) { /* บางอุปกรณ์/WebView ไม่รองรับ: ใช้โหมดเต็มพื้นที่แทน */ }
+            relayoutSoon();
+        };
+        function exitFS() {
+            document.getElementById('reader-view').classList.remove('fs', 'show-ui');
+            document.getElementById('fs-btn').innerText = '⛶ เต็มจอ';
+            if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            relayoutSoon();
+        }
+        document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && isFS()) exitFS(); });
+
+        // ===== แตะซ้าย/ขวา = เปลี่ยนหน้า | แตะกลาง = แสดง/ซ่อนเมนู (เต็มจอ) | ลากต่อเนื่อง + ปัดเกินขอบ = เปลี่ยนหน้า =====
+        (function() {
+            const box = document.getElementById('container-box');
+            const EDGE = 0.30, FLIP_PX = 80, TAP_PX = 10, TAP_MS = 500;
+            const atTopNow = () => box.scrollTop <= 1;
+            const atBottomNow = () => box.scrollTop + box.clientHeight >= box.scrollHeight - 2;
+            const flipNext = () => { setFsUi(false); window.nextPage(); };
+            const flipPrev = () => { setFsUi(false); window.prevPage(true); };
+
+            function tapAt(clientX) {
+                const r = box.getBoundingClientRect();
+                const fx = (clientX - r.left) / r.width;
+                if (fx < EDGE) { setFsUi(false); window.prevPage(); }
+                else if (fx > 1 - EDGE) { setFsUi(false); window.nextPage(); }
+                else if (isFS()) setFsUi(!document.getElementById('reader-view').classList.contains('show-ui'));
+            }
+
+            // เมาส์/ปากกา: แตะ=ตามโซน, กดค้างแล้วลาก=เลื่อนหน้า (นิ้วสัมผัสใช้การเลื่อนของระบบ)
+            let st = null;
+            box.addEventListener('pointerdown', e => {
+                if (e.pointerType === 'touch' || (e.pointerType === 'mouse' && e.button !== 0)) return;
+                st = { x: e.clientX, y: e.clientY, t: Date.now(), sl: box.scrollLeft, stp: box.scrollTop,
+                       moved: false, top: atTopNow(), bottom: atBottomNow() };
+            });
+            box.addEventListener('pointermove', e => {
+                if (!st) return;
+                const dx = e.clientX - st.x, dy = e.clientY - st.y;
+                if (!st.moved && Math.hypot(dx, dy) > TAP_PX) { st.moved = true; try { box.setPointerCapture(e.pointerId); } catch (_) {} box.style.cursor = 'grabbing'; }
+                if (st.moved) { box.scrollTop = st.stp - dy; box.scrollLeft = st.sl - dx; }
+            });
+            const endMouse = e => {
+                if (!st) return;
+                const s = st; st = null; box.style.cursor = '';
+                const dx = e.clientX - s.x, dy = e.clientY - s.y;
+                if (!s.moved) { if (Date.now() - s.t < TAP_MS) tapAt(e.clientX); return; }
+                if (Math.abs(dy) > FLIP_PX && Math.abs(dy) > 1.5 * Math.abs(dx)) {
+                    if (dy < 0 && s.bottom && atBottomNow()) flipNext();
+                    else if (dy > 0 && s.top && atTopNow()) flipPrev();
+                }
+            };
+            box.addEventListener('pointerup', endMouse);
+            box.addEventListener('pointercancel', () => { st = null; box.style.cursor = ''; });
+
+            // นิ้วสัมผัส: แตะ=ตามโซน, ปัดขึ้นเมื่ออยู่ท้ายหน้า=หน้าถัดไป, ปัดลงเมื่ออยู่บนสุด=หน้าก่อนหน้า
+            let ts = null;
+            box.addEventListener('touchstart', e => {
+                if (e.touches.length !== 1) { ts = null; return; }
+                const t = e.touches[0];
+                ts = { x: t.clientX, y: t.clientY, t: Date.now(), top: atTopNow(), bottom: atBottomNow(), multi: false };
+            }, { passive: true });
+            box.addEventListener('touchmove', e => { if (ts && e.touches.length > 1) ts.multi = true; }, { passive: true });
+            box.addEventListener('touchend', e => {
+                if (!ts) return;
+                const s = ts; ts = null;
+                if (s.multi || e.touches.length) return;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - s.x, dy = t.clientY - s.y;
+                if (Math.hypot(dx, dy) <= TAP_PX) { if (Date.now() - s.t < TAP_MS) tapAt(t.clientX); return; }
+                if (Math.abs(dy) > FLIP_PX && Math.abs(dy) > 1.5 * Math.abs(dx)) {
+                    if (dy < 0 && s.bottom && atBottomNow()) flipNext();
+                    else if (dy > 0 && s.top && atTopNow()) flipPrev();
+                }
+            }, { passive: true });
+
+            // ล้อเมาส์/ทัชแพด: เลื่อนเกินขอบหน้า = เปลี่ยนหน้า (สะสมระยะกันเลื่อนเพลินแล้วข้ามหน้า)
+            let acc = 0, accTimer = null, lastFlip = 0;
+            box.addEventListener('wheel', e => {
+                if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+                const down = e.deltaY > 0;
+                if ((down && !atBottomNow()) || (!down && !atTopNow())) { acc = 0; return; }
+                clearTimeout(accTimer); accTimer = setTimeout(() => acc = 0, 350);
+                acc += e.deltaY;
+                if (Math.abs(acc) > 160 && Date.now() - lastFlip > 800) {
+                    lastFlip = Date.now(); acc = 0;
+                    down ? flipNext() : flipPrev();
+                }
+            }, { passive: true });
+        })();
 
         // แป้นพิมพ์: ซ้าย/ขวา = เปลี่ยนหน้า | ขึ้น/ลง/PageUp/PageDown/Space = เลื่อนอ่านต่อเนื่อง
         // เลื่อนถึงท้ายหน้าแล้วกดลงอีก = หน้าถัดไป, อยู่บนสุดแล้วกดขึ้นอีก = ท้ายหน้าก่อนหน้า
@@ -1268,6 +1420,9 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
             const tag = event.target.tagName, type = event.target.type;
             if (tag === 'INPUT' && type !== 'range') return;   // กำลังพิมพ์เลขหน้า
             if (tag === 'INPUT') event.target.blur();          // สไลเดอร์ซูม: กันลูกศรไปขยับสไลเดอร์
+
+            if (event.key === 'f' || event.key === 'F') { window.toggleFullscreen(); return; }
+            if (event.key === 'Escape' && isFS()) { exitFS(); return; }
 
             const box = document.getElementById('container-box');
             const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 2;
