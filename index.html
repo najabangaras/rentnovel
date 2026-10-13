@@ -219,8 +219,11 @@
                         <span id="total-books-count" class="text-sm text-gray-500">ทั้งหมด 0 เรื่อง</span>
                     </div>
 
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <input id="shop-search" type="search" placeholder="🔍 ค้นหาชื่อเรื่อง..." oninput="onShopFilter()" class="flex-grow px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                        <input id="shop-search" type="search" placeholder="🔍 ค้นหาชื่อนิยาย..." oninput="onShopFilter()" class="flex-grow sm:min-w-[200px] px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input id="shop-author" type="search" list="dl-shop-authors" autocomplete="off" placeholder="✍ ชื่อผู้แต่ง (เลือกหรือพิมพ์)" oninput="onShopFilter()" onchange="onShopFilter()" class="flex-grow sm:min-w-[200px] px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <datalist id="dl-shop-authors"></datalist>
+                        <select id="shop-type" onchange="onShopFilter()" class="px-3 py-2 border rounded-lg text-sm bg-white"><option value="">ทุกประเภทนิยาย</option></select>
                         <select id="shop-cat" onchange="onShopFilter()" class="px-3 py-2 border rounded-lg text-sm bg-white"><option value="">ทุกหมวดหมู่</option></select>
                         <select id="shop-sort" onchange="onShopFilter()" class="px-3 py-2 border rounded-lg text-sm bg-white">
                             <option value="title">เรียงตามชื่อ ก-ฮ</option>
@@ -344,9 +347,11 @@
             <img id="bi-cover" class="w-28 h-40 object-cover rounded shadow shrink-0 bg-gray-100" onerror="this.onerror=null;this.src=NO_COVER">
             <div class="space-y-2 min-w-0">
                 <h3 id="bi-title" class="text-lg font-bold text-gray-800"></h3>
+                <p id="bi-author" class="text-xs text-gray-600"></p>
                 <p id="bi-cat" class="text-xs text-violet-600 font-semibold"></p>
                 <p id="bi-price" class="text-xs text-emerald-600 font-semibold"></p>
                 <p id="bi-syn" class="text-sm text-gray-600 whitespace-pre-line"></p>
+                <div id="bi-action"></div>
                 <button onclick="closeBookInfo()" class="mt-2 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-semibold transition">ปิด</button>
             </div>
         </div>
@@ -364,7 +369,7 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
     .catch(() => {});
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, runTransaction, query, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, runTransaction, query, where, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -398,7 +403,7 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
         const NO_COVER = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="140"><rect width="100%" height="100%" fill="#e5e7eb"/><text x="50" y="74" font-size="12" text-anchor="middle" fill="#9ca3af">No Cover</text></svg>');
         let regPromise = null;
         let shopCurrentPage = 1;
-        let shopQuery = '', shopSort = 'title', shopCat = '', favOnly = false;
+        let shopType = '', shopAuthor = '', shopQuery = '', shopSort = 'title', shopCat = '', favOnly = false;
 
         // รายการโปรด: เก็บในเบราว์เซอร์ก่อน (ภายหลังค่อยย้ายขึ้น Firestore)
         const favKey = () => 'favBooks_' + currentUserIdDoc;
@@ -409,14 +414,24 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
             const cats = [...new Set(allShopBooks.map(b => b.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th'));
             sel.innerHTML = '<option value="">ทุกหมวดหมู่</option>' + cats.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
             sel.value = cats.includes(shopCat) ? shopCat : '';
+            const typeOrder = ['นิยายไทย', 'นิยายจีน', 'นิยายเกาหลี', 'นิยายแปล (ยุโรป)', 'นิยายญี่ปุ่น'];
+            const have = [...new Set(allShopBooks.map(b => b.novelType).filter(Boolean))];
+            const types = typeOrder.filter(t => have.includes(t)).concat(have.filter(t => !typeOrder.includes(t)).sort((a, b) => a.localeCompare(b, 'th')));
+            const tsel = document.getElementById('shop-type');
+            tsel.innerHTML = '<option value="">ทุกประเภทนิยาย</option>' + types.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+            tsel.value = types.includes(shopType) ? shopType : '';
+            const authors = [...new Set(allShopBooks.map(b => (b.author || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th'));
+            document.getElementById('dl-shop-authors').innerHTML = authors.map(a => `<option value="${escHtml(a)}"></option>`).join('');
         }
         window.openBookInfo = function(id) {
             const b = allShopBooks.find(x => x.id === id); if (!b) return;
             document.getElementById('bi-cover').src = coverFor(b.name.trim());
             document.getElementById('bi-title').innerText = b.title;
-            document.getElementById('bi-cat').innerText = b.category ? '🏷 ' + b.category : '';
+            document.getElementById('bi-author').innerText = b.author ? '✍ ' + b.author : '';
+            document.getElementById('bi-cat').innerText = [b.novelType, b.category].filter(Boolean).map(t => '🏷 ' + t).join('  ');
             document.getElementById('bi-syn').innerText = b.synopsis || 'ยังไม่มีคำโปรย';
             document.getElementById('bi-price').innerText = b.points + ' แต้ม / 3 วัน';
+            document.getElementById('bi-action').innerHTML = shopActionHtml(b, true);
             document.getElementById('book-info-modal').style.display = 'flex';
         }
         window.closeBookInfo = function() { document.getElementById('book-info-modal').style.display = 'none'; }
@@ -425,6 +440,9 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
             let list = allShopBooks.slice();
             const q = shopQuery.trim().toLowerCase();
             if (q) list = list.filter(b => b.title.toLowerCase().includes(q));
+            if (shopType) list = list.filter(b => b.novelType === shopType);
+            const qa = shopAuthor.trim().toLowerCase();
+            if (qa) list = list.filter(b => (b.author || '').toLowerCase().includes(qa));
             if (shopCat) list = list.filter(b => b.category === shopCat);
             if (favOnly) { const f = getFavs(); list = list.filter(b => f.includes(b.id)); }
             const by = {
@@ -437,6 +455,8 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
         }
         window.onShopFilter = function() {
             shopQuery = document.getElementById('shop-search').value;
+            shopAuthor = document.getElementById('shop-author').value;
+            shopType = document.getElementById('shop-type').value;
             shopSort = document.getElementById('shop-sort').value;
             shopCat = document.getElementById('shop-cat').value;
             renderShopBooksPage(1);
@@ -780,6 +800,24 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
             if (next - now < 2147000000) readyTimer = setTimeout(() => { renderMyShelf(); checkQueueReady(); }, next - now + 1000);
         }
 
+        // เอาหนังสือที่หมดอายุแล้วออกจากชั้น (ไม่คืนแต้ม) — ลบได้เฉพาะเล่มที่หมดเวลาอ่านแล้วเท่านั้น
+        window.removeFromShelf = async function(bookKey) {
+            if (!currentUserIdDoc) return;
+            if (!confirm(`เอา "${titleFor(bookKey)}" ออกจากชั้นหนังสือ?\n(ถ้าต้องการอ่านอีกต้องเช่าใหม่)`)) return;
+            try {
+                const userRef = doc(db, 'users', currentUserIdDoc);
+                const snap = await getDoc(userRef);
+                const pb = { ...((snap.data() || {}).purchasedBooks || {}) };
+                if (!(bookKey in pb)) { loadUserData(); return; }
+                if (Number(pb[bookKey]) > Date.now()) { alert('เล่มนี้ยังไม่หมดเวลาอ่าน/คิว จึงเอาออกไม่ได้'); return; }
+                delete pb[bookKey];
+                await updateDoc(userRef, { purchasedBooks: pb, removedKey: bookKey, removedAt: serverTimestamp() });
+                loadUserData();
+            } catch (e) {
+                alert('เอาออกจากชั้นไม่สำเร็จ: ' + e.message);
+            }
+        }
+
         function renderMyShelf() {
             const shelfContainer = document.getElementById('my-shelf-container');
             shelfContainer.innerHTML = '';
@@ -825,7 +863,12 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
                         </div>
                     `;
                 } else {
-                    statusBadge = `<div class="mt-1 text-center"><span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold block">⏰ หมดอายุการอ่าน</span></div>`;
+                    const shopBook = allShopBooks.find(b => (b.name || '').trim() === cleanBookName);
+                    statusBadge = `<div class="mt-1 text-center flex flex-col items-center gap-1">
+                        <span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold block">⏰ หมดอายุการอ่าน</span>
+                        ${shopBook ? shopActionHtml(shopBook) : ''}
+                        <button data-key="${escHtml(bookName)}" onclick="removeFromShelf(this.dataset.key)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2.5 py-1 rounded-[4px] text-[10px] font-semibold transition">🗑 เอาออกจากชั้น</button>
+                    </div>`;
                 }
 
                 shelfContainer.innerHTML += `
@@ -862,6 +905,8 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
                         cover: data.cover || '',
                         category: data.category || '',
                         synopsis: data.synopsis || '',
+                        author: data.author || '',
+                        novelType: data.novelType || '',
                         points: Number(data.readPoints ?? data.points ?? 30)
                     });
                 });
@@ -875,6 +920,37 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
             } catch (error) {
                 document.getElementById('shop-books-container').innerHTML = `<p class="text-red-500 text-sm col-span-full">เกิดข้อผิดพลาดในการโหลดหนังสือ</p>`;
             }
+        }
+
+        // ปุ่มเช่า/จองคิว/สถานะของหนังสือหนึ่งเล่ม (ใช้ทั้งในการ์ดหน้าร้านและหน้าต่างรายละเอียด)
+        function shopActionHtml(book, big) {
+                let latestExpireTime = Date.now();
+                let hasActiveOrQueuedRenter = false;
+
+                const qe = queueMap[book.id] || 0;
+                if (qe > Date.now()) { hasActiveOrQueuedRenter = true; latestExpireTime = qe; }
+
+                const myExpire = Number(userPurchasedBooks[book.name]) || 0;
+                const isAlreadyInMyShelf = myExpire > Date.now();
+
+                let actionButton = '';
+                if (isAlreadyInMyShelf) {
+                    actionButton = `<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded font-semibold mt-1">อยู่ในชั้น/คิวของคุณแล้ว</span>`;
+                } else if (hasActiveOrQueuedRenter) {
+                    const rem = getTimeRemaining(latestExpireTime);
+                    const remStr = rem ? `${rem.days}วัน ${rem.hours}ชม.` : `เร็วๆ นี้`;
+                    actionButton = `
+                        <div class="mt-1 text-center flex flex-col items-center">
+                            <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">มีคิวจองอยู่</span>
+                            <span class="text-[9px] text-gray-500 mt-0.5">ได้คิวอ่านในอีก: ${remStr}</span>
+                            <button onclick="buyBookWithPoints('${book.id}', ${book.points}, ${latestExpireTime})" class="mt-1 bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-[4px] text-[10px] font-semibold transition shadow">จองคิวเช่าต่อ (${book.points} แต้ม)</button>
+                        </div>
+                    `;
+                } else {
+                    actionButton = `<button onclick="buyBookWithPoints('${book.id}', ${book.points}, null)" class="mt-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-[4px] text-[10px] font-semibold transition shadow">เช่า 3 วัน (${book.points} แต้ม)</button>`;
+                }
+            if (big) actionButton = actionButton.replace(/text-\[10px\]/g, 'text-sm').replace(/text-\[9px\]/g, 'text-xs').replace(/px-3 py-1 /g, 'px-5 py-2 ').replace(/px-2\.5 py-1 /g, 'px-4 py-2 ').replace(/mt-1 /g, 'mt-2 ');
+            return actionButton;
         }
 
         window.renderShopBooksPage = function(page) {
@@ -901,31 +977,7 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
             paginatedItems.forEach((book) => {
                 const cleanBookName = book.name.trim();
                 const coverPath = coverFor(cleanBookName);
-                let latestExpireTime = Date.now();
-                let hasActiveOrQueuedRenter = false;
-
-                const qe = queueMap[book.id] || 0;
-                if (qe > Date.now()) { hasActiveOrQueuedRenter = true; latestExpireTime = qe; }
-
-                const myExpire = Number(userPurchasedBooks[book.name]) || 0;
-                const isAlreadyInMyShelf = myExpire > Date.now();
-
-                let actionButton = '';
-                if (isAlreadyInMyShelf) {
-                    actionButton = `<span class="text-[10px] bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded font-semibold mt-1">อยู่ในชั้น/คิวของคุณแล้ว</span>`;
-                } else if (hasActiveOrQueuedRenter) {
-                    const rem = getTimeRemaining(latestExpireTime);
-                    const remStr = rem ? `${rem.days}วัน ${rem.hours}ชม.` : `เร็วๆ นี้`;
-                    actionButton = `
-                        <div class="mt-1 text-center flex flex-col items-center">
-                            <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">มีคิวจองอยู่</span>
-                            <span class="text-[9px] text-gray-500 mt-0.5">ได้คิวอ่านในอีก: ${remStr}</span>
-                            <button onclick="buyBookWithPoints('${book.id}', ${book.points}, ${latestExpireTime})" class="mt-1 bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-[4px] text-[10px] font-semibold transition shadow">จองคิวเช่าต่อ (${book.points} แต้ม)</button>
-                        </div>
-                    `;
-                } else {
-                    actionButton = `<button onclick="buyBookWithPoints('${book.id}', ${book.points}, null)" class="mt-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-[4px] text-[10px] font-semibold transition shadow">เช่า 3 วัน (${book.points} แต้ม)</button>`;
-                }
+                const actionButton = shopActionHtml(book);
 
                 container.innerHTML += `
                     <div class="flex flex-col items-center group">
@@ -935,6 +987,7 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
                             <button onclick="event.stopPropagation();toggleFav('${book.id}')" title="รายการโปรด" class="absolute top-1 left-1 text-base leading-none drop-shadow">${favs.includes(book.id) ? '❤️' : '🤍'}</button>
                         </div>
                         <p class="text-xs font-semibold text-gray-800 mt-2 text-center line-clamp-1 w-full" title="${escHtml(book.title)}">${escHtml(book.title)}</p>
+                        ${book.author ? `<p class="text-[11px] text-gray-500 text-center line-clamp-1 w-full" title="${escHtml(book.author)}">✍ ${escHtml(book.author)}</p>` : ''}
                         ${actionButton}
                     </div>
                 `;
@@ -956,10 +1009,18 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
             container.innerHTML += `<button onclick="renderShopBooksPage(${shopCurrentPage + 1})" ${shopCurrentPage === totalPagesCount ? 'disabled class="px-3 py-1 bg-gray-200 text-gray-400 rounded cursor-not-allowed text-sm"' : 'class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-sm transition"'}>ถัดไป</button>`;
         }
 
+        // จำกัดจำนวนหนังสือที่เช่า/จองพร้อมกัน (นับเล่มที่ยังไม่หมดอายุ: กำลังอ่าน + รอคิว)
+        const MAX_ACTIVE_BOOKS = 5;
+        const countActiveBooks = pb => Object.values(pb || {}).filter(v => Number(v) > Date.now()).length;
+
         window.buyBookWithPoints = async function(bookId, _price, currentLatestExpire) {
             const book = allShopBooks.find(b => b.id === bookId);
             if (!book) return;
             const bookName = book.name, bookPoints = book.points;
+            if (countActiveBooks(userPurchasedBooks) >= MAX_ACTIVE_BOOKS) {
+                alert(`เช่า/จองได้พร้อมกันไม่เกิน ${MAX_ACTIVE_BOOKS} เล่ม (ตอนนี้ครบแล้ว)\nรออ่านเล่มเดิมหมดเวลาก่อน แล้วจึงเช่าเล่มใหม่ได้`);
+                return;
+            }
             if (userPoints < bookPoints) {
                 alert(`คะแนนของคุณไม่เพียงพอ! ต้องการ ${bookPoints} แต้ม แต่คุณมี ${userPoints} แต้ม`);
                 return;
@@ -981,6 +1042,7 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
                     if (pts < bookPoints) throw new Error('แต้มไม่เพียงพอ');
                     const pb = { ...(d.purchasedBooks || {}) };
                     if (Number(pb[bookName]) > Date.now()) throw new Error('หนังสือเล่มนี้อยู่ในชั้น/คิวของคุณแล้ว');
+                    if (countActiveBooks(pb) >= MAX_ACTIVE_BOOKS) throw new Error(`เช่า/จองได้พร้อมกันไม่เกิน ${MAX_ACTIVE_BOOKS} เล่ม`);
                     const latest = qs.exists() ? Number(qs.data().lastExpire) || 0 : 0;
                     const base = Math.max(Date.now(), latest);
                     pb[bookName] = base + threeDaysMs;
@@ -988,6 +1050,7 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
                     tx.set(qRef, { lastExpire: base + threeDaysMs });
                 });
                 alert(`จองคิวเช่าหนังสือสำเร็จ! เพิ่ม "${book.title}" ลงในชั้นหนังสือของคุณแล้ว`);
+                closeBookInfo();
                 loadUserData();
             } catch (error) {
                 alert('เกิดข้อผิดพลาดในการเช่าหนังสือ: ' + error.message);
