@@ -1048,6 +1048,14 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
                     pb[bookName] = base + threeDaysMs;
                     tx.update(userRef, { points: pts - bookPoints, purchasedBooks: pb });
                     tx.set(qRef, { lastExpire: base + threeDaysMs });
+                    // บันทึกประวัติการเช่า (แอดมินดูได้ในหน้า "ประวัติการเช่า")
+                    tx.set(doc(collection(db, "rentLogs")), {
+                        type: 'rent', uid: currentUserIdDoc, userCode: String(d.userId || ''),
+                        userName: String(d.username || d.email || ''),
+                        bookId: bookId, bookKey: bookName, bookTitle: String(book.title || bookName),
+                        points: bookPoints, startAt: base, expireAt: base + threeDaysMs,
+                        queued: base > Date.now() + 1000, createdAt: serverTimestamp()
+                    });
                 });
                 alert(`จองคิวเช่าหนังสือสำเร็จ! เพิ่ม "${book.title}" ลงในชั้นหนังสือของคุณแล้ว`);
                 closeBookInfo();
