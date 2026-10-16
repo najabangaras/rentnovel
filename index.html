@@ -304,29 +304,29 @@
             <h3 class="text-lg font-bold text-gray-800">💳 แจ้งขอเติมแต้ม / ชำระเงิน</h3>
             <p class="text-sm text-gray-500">กรุณาโอนเงินผ่านบัญชีร้าน จากนั้นกรอกข้อมูลการโอนเพื่อให้แอดมินตรวจสอบและเติมแต้มให้ครับ</p>
             <div class="bg-indigo-50 p-3 rounded-lg text-xs text-indigo-800 space-y-1">
-                <p class="font-semibold">📌 บัญชีสำหรับโอนเงิน:</p>
-                <p>ธนาคาร: กสิกรไทย (KBANK)</p>
-                <p>เลขที่บัญชี: 123-4-56789-0</p>
-                <p>ชื่อบัญชี: ร้าน RentNovel</p>
+                <p class="font-semibold">📌 แจ้งใบเสร็จสำหรับการแลกแต้ม:</p>
+                <p>เลขที่ใบเสร็จ</p>
+                <p>ราคารวมสินค้าในบิล</p>
+                <p>ชื่อบัญชี: ร้านหนังสือกะข้าวแฝ่</p>
             </div>
             <div class="space-y-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">จำนวนเงินที่โอน (บาท)</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">จำนวนเงินในใบเสร็จ</label>
                     <input type="number" id="topup-amount-input" placeholder="เช่น 100" class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">หมายเหตุ / เลขที่อ้างอิงสลิป</label>
-                    <input type="text" id="topup-note-input" placeholder="เช่น โอนเวลา 12:30 น." class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                    <input type="text" id="topup-note-input" placeholder="เช่น บิลลงวันที่ หรือ เลขที่ใบเสร็จ." class="w-full px-3 py-2 border rounded-lg text-sm outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">แนบรูปสลิปการโอน</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">แนบรูปสลิปการจ่ายเงินหรือรูปบิล</label>
                     <input type="file" id="topup-slip-input" accept="image/*" onchange="previewSlip(this)" class="w-full text-sm">
                     <img id="topup-slip-preview" class="hidden mt-2 max-h-48 rounded-lg border mx-auto" alt="ตัวอย่างสลิป">
                 </div>
             </div>
             <div class="flex justify-end space-x-2 pt-2">
                 <button onclick="closeTopupModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition">ยกเลิก</button>
-                <button id="topup-submit-btn" onclick="submitTopupRequest()" class="disabled:opacity-50 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">ยืนยันการแจ้งโอน</button>
+                <button id="topup-submit-btn" onclick="submitTopupRequest()" class="disabled:opacity-50 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">ยืนยันการแจ้งขอเติมแต้ม</button>
             </div>
         </div>
     </div>
@@ -658,7 +658,7 @@ const pdfBaseReady = fetch('config.json?_=' + Date.now(), { cache: 'no-store' })
             const file = document.getElementById('topup-slip-input').files[0];
 
             if (!amount || isNaN(amount) || amount <= 0) { alert('กรุณากรอกจำนวนเงินให้ถูกต้อง'); return; }
-            if (!file) { alert('กรุณาแนบรูปสลิปการโอน'); return; }
+            if (!file) { alert('กรุณาแนบรูปใบเสร็จ'); return; }
 
             const btn = document.getElementById('topup-submit-btn');
             btn.disabled = true;
